@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniMart POS — Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f4f0;
+  --surface: #ffffff;
+  --surface2: #f0efe9;
+  --border: #e2e0d8;
+  --accent: #2d5016;
+  --accent2: #5a8f2e;
+  --accent3: #f0a500;
+  --text: #1a1a1a;
+  --text2: #6b6b6b;
+  --red: #d94f3d;
+  --green: #2d8a4e;
+  --blue: #2563eb;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ===== LAYOUT ===== */
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+/* Top Nav */
+.topnav {
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 52px;
+  gap: 8px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.nav-logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; margin-right: 8px; }
+.nav-logo span { color: var(--accent3); }
+.nav-tabs { display: flex; gap: 2px; flex: 1; }
+.nav-tab {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: rgba(255,255,255,0.7);
+  transition: all 0.15s;
+  display: flex; align-items: center; gap: 6px;
+  border: none; background: none;
+}
+.nav-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
+.nav-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: rgba(255,255,255,0.8); }
+.nav-time { font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+
+/* Mobile bottom nav */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: var(--accent);
+  z-index: 50;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.2);
+}
+.bottom-nav-tabs {
+  display: flex;
+}
+.bottom-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px 8px;
+  color: rgba(255,255,255,0.6);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  gap: 3px;
+  transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.bottom-tab .tab-icon { font-size: 20px; line-height: 1; }
+.bottom-tab.active { color: var(--accent3); }
+.bottom-tab:hover { color: #fff; }
+
+/* Camera scanner overlay */
+.scanner-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.scanner-overlay.open { display: flex; }
+.scanner-box {
+  position: relative;
+  width: min(320px, 90vw);
+  height: min(240px, 56vw);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 3px solid var(--accent3);
+  background: #000;
+}
+.scanner-box video { width: 100%; height: 100%; object-fit: cover; }
+.scanner-line {
+  position: absolute;
+  left: 0; right: 0;
+  height: 2px;
+  background: var(--accent3);
+  animation: scanLine 1.8s ease-in-out infinite;
+  box-shadow: 0 0 8px var(--accent3);
+}
+@keyframes scanLine {
+  0% { top: 10%; }
+  50% { top: 85%; }
+  100% { top: 10%; }
+}
+.scanner-corners::before, .scanner-corners::after {
+  content: '';
+  position: absolute;
+  width: 28px; height: 28px;
+  border-color: var(--accent3);
+  border-style: solid;
+}
+.scanner-corners::before { top: 8px; left: 8px; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+.scanner-corners::after { bottom: 8px; right: 8px; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+.scanner-label { color: #fff; font-size: 15px; font-weight: 500; }
+.scanner-result { color: var(--accent3); font-family: 'IBM Plex Mono', monospace; font-size: 18px; font-weight: 700; min-height: 28px; }
+.scanner-close {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 32px;
+  font-size: 15px;
+  cursor: pointer;
+  font-family: 'Sarabun', sans-serif;
+}
+.scanner-close:hover { background: rgba(255,255,255,0.25); }
+
+/* Camera btn in search bar */
+.cam-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.cam-btn:hover { border-color: var(--accent3); background: #fff9e6; }
+
+/* ===== RESPONSIVE MOBILE ===== */
+@media (max-width: 768px) {
+  /* Hide desktop top nav tabs, show bottom nav */
+  .nav-tabs { display: none; }
+  .nav-right .nav-time { display: none; }
+  .bottom-nav { display: block; }
+
+  /* Pages take full width, add bottom padding for nav */
+  .pages { padding-bottom: 60px; }
+
+  /* POS: stack vertically on mobile */
+  #page-pos { flex-direction: column; }
+
+  .pos-left {
+    width: 100%;
+    max-height: 55vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Fewer columns on small screen */
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 8px;
+    gap: 6px;
+  }
+
+  /* Cart takes remaining space */
+  .pos-right {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .cart-summary {
+    padding: 12px 16px;
+  }
+  .sum-total { font-size: 22px; padding: 10px 14px; }
+  .btn-pay { padding: 14px; font-size: 17px; }
+  .pay-input { font-size: 18px; padding: 10px 14px; }
+  .change-row { font-size: 15px; padding: 10px 14px; }
+
+  /* Cart items smaller on mobile */
+  .cart-item { padding: 10px 12px; gap: 10px; }
+  .ci-emoji { font-size: 22px; }
+  .ci-name { font-size: 14px; }
+  .ci-qty { font-size: 17px; }
+  .ci-btn { width: 30px; height: 30px; font-size: 16px; }
+  .ci-price { font-size: 15px; min-width: 60px; }
+
+  /* Inventory table scroll */
+  .inv-table-wrap { overflow-x: auto; }
+  .inv-stats { flex-wrap: wrap; }
+  .stat-card { min-width: calc(50% - 6px); }
+
+  /* Master grid 2 cols */
+  .master-content { grid-template-columns: repeat(2, 1fr); }
+
+  /* Report 1 col */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .report-2col { grid-template-columns: 1fr; }
+
+  /* Architecture page scroll friendly */
+  #page-arch { padding: 16px; }
+  .arch-diagram { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
+  .arch-arrow { transform: rotate(90deg); }
+  .sheets-grid { grid-template-columns: repeat(2, 1fr); }
+  .flow-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Pages */
+.pages { flex: 1; overflow: hidden; display: flex; }
+.page { display: none; width: 100%; height: 100%; overflow: hidden; }
+.page.active { display: flex; }
+
+/* ===== ARCHITECTURE PAGE ===== */
+#page-arch {
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 32px;
+  gap: 24px;
+  background: var(--bg);
+}
+.arch-title { font-size: 22px; font-weight: 700; color: var(--accent); }
+.arch-sub { font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+.arch-diagram {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr 60px 1fr;
+  gap: 0;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+}
+.arch-box {
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.arch-box-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.arch-box-items { display: flex; flex-direction: column; gap: 6px; }
+.arch-item {
+  background: rgba(255,255,255,0.6);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.arch-arrow { text-align: center; font-size: 24px; color: var(--text2); }
+.box-frontend { background: #e8f4e8; border: 1.5px solid #a8d5a8; }
+.box-frontend .arch-box-title { color: var(--accent); }
+.box-gas { background: #fff3e0; border: 1.5px solid #ffcc80; }
+.box-gas .arch-box-title { color: #e65100; }
+.box-data { background: #e3f2fd; border: 1.5px solid #90caf9; }
+.box-data .arch-box-title { color: #1565c0; }
+
+.sheets-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.sheet-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  border-top: 3px solid var(--accent2);
+}
+.sheet-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; color: var(--accent); }
+.sheet-cols { font-size: 12px; color: var(--text2); line-height: 1.8; }
+.sheet-cols span { display: inline-block; background: var(--surface2); border-radius: 4px; padding: 2px 6px; margin: 2px; font-size: 11px; }
+
+.flow-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; align-items: center; }
+.flow-step {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+}
+.flow-num { width: 28px; height: 28px; background: var(--accent); color: #fff; border-radius: 50%; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; }
+.flow-text { font-size: 12px; font-weight: 600; }
+.flow-sub { font-size: 11px; color: var(--text2); margin-top: 4px; }
+.flow-arrow { text-align: center; font-size: 20px; color: var(--text2); }
+
+.section-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text2); margin-bottom: 12px; }
+
+/* ===== POS PAGE ===== */
+#page-pos { flex-direction: row; overflow: hidden; }
+
+/* LEFT — Search + Keypad (collapsible) + Product Grid */
+.pos-left {
+  width: 420px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+
+/* Search bar */
+.pos-search {
+  padding: 12px 14px 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.pos-search-row { display: flex; gap: 8px; align-items: center; }
+.pos-search-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  outline: none;
+  color: var(--text);
+  transition: border-color 0.2s;
+}
+.pos-search-input:focus { border-color: var(--accent2); }
+.kp-toggle-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 13px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.kp-toggle-btn:hover { border-color: var(--accent2); background: #e8f4e8; }
+.kp-toggle-btn.kp-on { background: var(--accent); border-color: var(--accent); }
+
+/* Collapsible Keypad */
+.keypad-wrap {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+  background: var(--surface);
+  border-bottom: 0px solid var(--border);
+}
+.keypad-wrap.open {
+  max-height: 230px;
+  border-bottom: 1px solid var(--border);
+}
+.keypad {
+  padding: 10px 14px 12px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+}
+.kp-btn {
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  height: 50px;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer;
+  transition: all 0.1s;
+  color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+}
+.kp-btn:hover { background: #e8f4e8; border-color: var(--accent2); }
+.kp-btn:active { transform: scale(0.93); background: var(--accent2); color: #fff; border-color: var(--accent2); }
+.kp-btn.kp-del { background: #fdecea; border-color: #f5b8b3; color: var(--red); font-size: 16px; }
+.kp-btn.kp-del:hover { background: #f5b8b3; }
+.kp-btn.kp-zero { grid-column: span 2; }
+
+/* Product Grid — multi-row */
+.product-grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+.product-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.product-card:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: var(--shadow); }
+.product-card:active { transform: scale(0.96); }
+.product-card.out-of-stock { opacity: 0.38; pointer-events: none; }
+.pc-img { font-size: 26px; margin-bottom: 5px; height: 34px; display: flex; align-items: center; justify-content: center; }
+.pc-name { font-size: 11px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
+.pc-price { font-size: 13px; font-weight: 700; color: var(--accent); }
+.pc-stock { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.pc-stock.low { color: var(--red); font-weight: 600; }
+
+/* RIGHT — Cart (big, สบายตา) */
+.pos-right {
+  flex: 1;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.cart-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface2);
+}
+.cart-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cart-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.ci-emoji { font-size: 28px; flex-shrink: 0; }
+.ci-name { flex: 1; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.ci-qty-row { display: flex; align-items: center; gap: 10px; }
+.ci-btn {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.ci-btn:hover { border-color: var(--accent2); color: var(--accent); background: #e8f4e8; }
+.ci-qty { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; min-width: 28px; text-align: center; }
+.ci-price { font-size: 18px; font-weight: 700; color: var(--accent); min-width: 80px; text-align: right; font-family: 'IBM Plex Mono', monospace; }
+.ci-del { color: var(--red); font-size: 20px; cursor: pointer; padding: 4px 6px; opacity: 0.6; }
+.ci-del:hover { opacity: 1; }
+
+.cart-summary {
+  padding: 18px 24px;
+  border-top: 2px solid var(--border);
+  background: var(--surface2);
+}
+.sum-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--text2); margin-bottom: 8px; }
+.sum-total {
+  display: flex; justify-content: space-between;
+  font-size: 28px; font-weight: 700; color: var(--accent);
+  margin: 12px 0;
+  padding: 14px 18px;
+  background: #e8f4e8;
+  border-radius: 12px;
+}
+.sum-total span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.pay-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+.pay-label { font-size: 15px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+.pay-input {
+  flex: 1;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 22px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 700;
+  outline: none;
+  color: var(--text);
+  text-align: right;
+}
+.pay-input:focus { border-color: var(--accent2); }
+.change-row {
+  background: #fff9e6;
+  border: 1.5px solid #fde68a;
+  border-radius: 10px;
+  padding: 12px 18px;
+  display: flex; justify-content: space-between;
+  font-weight: 700; font-size: 18px; color: #92400e;
+  margin-bottom: 12px;
+}
+.change-row span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.btn-pay {
+  width: 100%;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 18px;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+  letter-spacing: 0.5px;
+}
+.btn-pay:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(45,80,22,0.3); }
+.btn-pay:active { transform: scale(0.98); }
+
+/* ===== INVENTORY PAGE ===== */
+#page-inventory {
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.inv-toolbar {
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.inv-search {
+  flex: 1;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 14px;
+  outline: none;
+  font-family: 'Sarabun', sans-serif;
+}
+.inv-search:focus { border-color: var(--accent2); }
+.btn { border: none; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'Sarabun', sans-serif; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text2); }
+.btn-outline:hover { border-color: var(--accent2); color: var(--accent); }
+
+.inv-stats { display: flex; gap: 12px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.stat-card { background: var(--surface2); border-radius: 10px; padding: 12px 16px; flex: 1; }
+.stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
+.stat-val { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.stat-val.green { color: var(--green); }
+.stat-val.red { color: var(--red); }
+.stat-val.orange { color: var(--accent3); }
+
+.inv-table-wrap { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.inv-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.inv-table th {
+  text-align: left; padding: 12px 16px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text2);
+  background: var(--surface2); border-bottom: 1px solid var(--border);
+}
+.inv-table td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.inv-table tr:last-child td { border-bottom: none; }
+.inv-table tr:hover td { background: var(--surface2); }
+.stock-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.badge-ok { background: #e8f4e8; color: var(--green); }
+.badge-low { background: #fff3e0; color: #e65100; }
+.badge-out { background: #fdecea; color: var(--red); }
+.barcode-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text2); }
+
+/* ===== MASTER DATA PAGE ===== */
+#page-master {
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.master-toolbar {
+  padding: 16px 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 10px; align-items: center;
+}
+.master-content { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; align-content: start; }
+.master-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.master-card:hover { border-color: var(--accent2); box-shadow: var(--shadow); transform: translateY(-2px); }
+.mc-img { height: 120px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative; }
+.mc-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.mc-body { padding: 12px 14px; }
+.mc-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+.mc-barcode { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text2); margin-bottom: 8px; }
+.mc-footer { display: flex; justify-content: space-between; align-items: center; }
+.mc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
+.mc-cat { font-size: 11px; background: var(--surface2); padding: 3px 8px; border-radius: 20px; color: var(--text2); }
+
+/* Add product modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 500px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from { opacity:0; transform:scale(0.95); } to { opacity:1; transform:scale(1); } }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; display: block; }
+.form-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'Sarabun', sans-serif;
+  outline: none; color: var(--text);
+}
+.form-input:focus { border-color: var(--accent2); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+
+/* ===== REPORT PAGE ===== */
+#page-report {
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+.report-content { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.report-header { display: flex; gap: 10px; align-items: center; padding: 16px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  border-top: 3px solid var(--accent2);
+}
+.kpi-label { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.kpi-val { font-size: 28px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; color: var(--accent); }
+.kpi-sub { font-size: 12px; color: var(--green); margin-top: 4px; }
+
+.report-2col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.report-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+.report-card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 16px; }
+
+/* Bar chart */
+.bar-chart { display: flex; flex-direction: column; gap: 10px; }
+.bar-row { display: flex; align-items: center; gap: 10px; }
+.bar-label { font-size: 12px; min-width: 80px; color: var(--text2); }
+.bar-track { flex: 1; height: 10px; background: var(--surface2); border-radius: 5px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 5px; background: var(--accent2); transition: width 0.5s ease; }
+.bar-val { font-size: 12px; font-weight: 600; min-width: 60px; text-align: right; font-family: 'IBM Plex Mono', monospace; }
+
+/* Top products */
+.top-list { display: flex; flex-direction: column; gap: 10px; }
+.top-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface2); border-radius: 10px; }
+.top-rank { width: 24px; height: 24px; border-radius: 6px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.top-rank.gold { background: #f0a500; }
+.top-rank.silver { background: #9e9e9e; }
+.top-rank.bronze { background: #a0522d; }
+.top-name { flex: 1; font-size: 13px; font-weight: 600; }
+.top-qty { font-size: 12px; color: var(--text2); }
+.top-amt { font-size: 13px; font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono', monospace; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--accent); color: #fff; padding: 12px 24px; border-radius: 10px;
+  font-size: 14px; font-weight: 600; z-index: 999; transition: transform 0.3s ease;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- Top Nav -->
+<nav class="topnav">
+  <div class="nav-logo">🏪 Mini<span>Mart</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab" onclick="showPage('arch',this)">🗺️ Architecture</button>
+    <button class="nav-tab active" onclick="showPage('pos',this)">🛒 หน้าขาย (POS)</button>
+    <button class="nav-tab" onclick="showPage('inventory',this)">📦 คลังสินค้า</button>
+    <button class="nav-tab" onclick="showPage('master',this)">🗂️ Master Data</button>
+    <button class="nav-tab" onclick="showPage('report',this)">📊 รายงาน</button>
+  </div>
+  <div class="nav-right">
+    <span>👤 แม่ค้า</span>
+    <span class="nav-time" id="clock">--:--:--</span>
+  </div>
+</nav>
+
+<!-- Mobile bottom nav -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-tabs">
+    <button class="bottom-tab" onclick="showPage('pos',this)"><span class="tab-icon">🛒</span>ขายของ</button>
+    <button class="bottom-tab" onclick="showPage('inventory',this)"><span class="tab-icon">📦</span>คลัง</button>
+    <button class="bottom-tab" onclick="showPage('master',this)"><span class="tab-icon">🗂️</span>สินค้า</button>
+    <button class="bottom-tab" onclick="showPage('report',this)"><span class="tab-icon">📊</span>รายงาน</button>
+    <button class="bottom-tab" onclick="showPage('arch',this)"><span class="tab-icon">🗺️</span>ระบบ</button>
+  </div>
+</nav>
+
+<!-- Camera Scanner Overlay -->
+<div class="scanner-overlay" id="scannerOverlay">
+  <div class="scanner-box">
+    <video id="scannerVideo" autoplay playsinline muted></video>
+    <div class="scanner-line"></div>
+    <div class="scanner-corners"></div>
+  </div>
+  <div class="scanner-label">📷 จ่อกล้องไปที่ Barcode</div>
+  <div class="scanner-result" id="scannerResult">กำลังเปิดกล้อง...</div>
+  <button class="scanner-close" onclick="closeScanner()">✕ ปิดกล้อง</button>
+</div>
+
+<div class="pages">
+
+<!-- ===== ARCHITECTURE PAGE ===== -->
+<div class="page" id="page-arch">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">🗺️ System Architecture</div>
+  <div style="font-size:14px; color:var(--text2)">แผนผังระบบ MiniMart POS โดยใช้ Google Ecosystem ทั้งหมด — ฟรี 100%</div>
+
+  <div class="section-label">Overview</div>
+  <div class="arch-diagram">
+    <div class="arch-box box-frontend">
+      <div class="arch-box-title">🖥️ Frontend</div>
+      <div class="arch-box-items">
+        <div class="arch-item">HTML + CSS + JavaScript</div>
+        <div class="arch-item">หน้า POS / แคชเชียร์</div>
+        <div class="arch-item">หน้าคลังสินค้า</div>
+        <div class="arch-item">Master Data สินค้า</div>
+        <div class="arch-item">รายงานยอดขาย</div>
+      </div>
+    </div>
+    <div class="arch-arrow">⇄</div>
+    <div class="arch-box box-gas">
+      <div class="arch-box-title">⚙️ Google Apps Script</div>
+      <div class="arch-box-items">
+        <div class="arch-item">doGet() → serve HTML</div>
+        <div class="arch-item">API: getProducts()</div>
+        <div class="arch-item">API: saveSale()</div>
+        <div class="arch-item">API: updateStock()</div>
+        <div class="arch-item">API: uploadImage()</div>
+      </div>
+    </div>
+    <div class="arch-arrow">⇄</div>
+    <div class="arch-box box-data">
+      <div class="arch-box-title">💾 Google Data</div>
+      <div class="arch-box-items">
+        <div class="arch-item">📊 Sheets → ฐานข้อมูล</div>
+        <div class="arch-item">🖼️ Drive → รูปภาพ</div>
+        <div class="arch-item">📧 Gmail → รายงาน</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Google Sheets — ตารางข้อมูล</div>
+  <div class="sheets-grid">
+    <div class="sheet-card">
+      <div class="sheet-name">📋 Products</div>
+      <div class="sheet-cols">
+        <span>barcode</span><span>name</span><span>brand</span>
+        <span>category</span><span>price</span><span>cost</span>
+        <span>imageUrl</span><span>unit</span>
+      </div>
+    </div>
+    <div class="sheet-card">
+      <div class="sheet-name">📦 Inventory</div>
+      <div class="sheet-cols">
+        <span>barcode</span><span>qty</span><span>minQty</span>
+        <span>location</span><span>lastUpdated</span>
+      </div>
+    </div>
+    <div class="sheet-card">
+      <div class="sheet-name">🧾 Sales</div>
+      <div class="sheet-cols">
+        <span>saleId</span><span>date</span><span>items</span>
+        <span>total</span><span>payment</span><span>change</span><span>cashier</span>
+      </div>
+    </div>
+    <div class="sheet-card">
+      <div class="sheet-name">📜 SaleItems</div>
+      <div class="sheet-cols">
+        <span>saleId</span><span>barcode</span><span>name</span>
+        <span>qty</span><span>price</span><span>subtotal</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">User Flow — การทำงานของระบบ</div>
+  <div class="flow-grid">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-text">เปิดเว็บ</div>
+      <div class="flow-sub">GAS serve HTML ให้</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-text">สแกน Barcode</div>
+      <div class="flow-sub">ค้นใน Sheets</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-text">เพิ่มตะกร้า</div>
+      <div class="flow-sub">คำนวณราคา</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-text">ชำระเงิน</div>
+      <div class="flow-sub">บันทึก Sale</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-text">ตัด Stock</div>
+      <div class="flow-sub">อัปเดต Sheets</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== POS PAGE ===== -->
+<div class="page active" id="page-pos">
+
+  <!-- LEFT: Search + Keypad + Product Grid -->
+  <div class="pos-left">
+
+    <!-- Search bar -->
+    <div class="pos-search">
+      <div class="pos-search-row">
+        <input class="pos-search-input" id="posSearch"
+          placeholder="🔍 พิมพ์ชื่อ หรือ Barcode..."
+          oninput="filterProducts(this.value)"
+          onkeydown="if(event.key==='Enter') addBySearch(this.value)">
+        <button class="cam-btn" onclick="openScanner()" title="สแกน Barcode จากกล้อง">📷</button>
+        <button class="kp-toggle-btn" id="kpToggleBtn" onclick="toggleKeypad()" title="เปิด/ปิด Keypad">⌨️</button>
+      </div>
+    </div>
+
+    <!-- Collapsible Keypad -->
+    <div class="keypad-wrap" id="keypadWrap">
+      <div class="keypad">
+        <button class="kp-btn" onclick="kpPress('1')">1</button>
+        <button class="kp-btn" onclick="kpPress('2')">2</button>
+        <button class="kp-btn" onclick="kpPress('3')">3</button>
+        <button class="kp-btn" onclick="kpPress('4')">4</button>
+        <button class="kp-btn" onclick="kpPress('5')">5</button>
+        <button class="kp-btn" onclick="kpPress('6')">6</button>
+        <button class="kp-btn" onclick="kpPress('7')">7</button>
+        <button class="kp-btn" onclick="kpPress('8')">8</button>
+        <button class="kp-btn" onclick="kpPress('9')">9</button>
+        <button class="kp-btn kp-del" onclick="kpBackspace()">⌫</button>
+        <button class="kp-btn kp-zero" onclick="kpPress('0')">0</button>
+      </div>
+    </div>
+
+    <!-- Product Grid — multi-row -->
+    <div class="product-grid" id="productGrid"></div>
+
+  </div>
+
+  <!-- RIGHT: Big Cart -->
+  <div class="pos-right">
+    <div class="cart-header">
+      <span>🛒 รายการสินค้า &nbsp;<span style="font-size:15px;font-weight:500;color:var(--text2)">(<span id="cartCount">0</span> รายการ)</span></span>
+      <button class="btn btn-outline" style="font-size:13px;" onclick="clearCart()">🗑 ล้างตะกร้า</button>
+    </div>
+    <div class="cart-items" id="cartItems">
+      <div style="text-align:center;padding:60px 20px;color:var(--text2);font-size:16px;line-height:2.2">
+        🛒<br>ยังไม่มีสินค้าในตะกร้า<br>
+        <span style="font-size:13px">พิมพ์ค้นหา หรือกดเลือกสินค้าด้านซ้าย</span>
+      </div>
+    </div>
+    <div class="cart-summary">
+      <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
+      <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
+      <div class="pay-row">
+        <span class="pay-label">รับเงิน</span>
+        <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()">
+      </div>
+      <div class="change-row"><span>เงินทอน</span><span id="changeAmt">฿0.00</span></div>
+      <button class="btn-pay" onclick="processSale()">💳 ชำระเงิน</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INVENTORY PAGE ===== -->
+<div class="page" id="page-inventory">
+  <div class="inv-toolbar">
+    <input class="inv-search" placeholder="🔍 ค้นหาสินค้า...">
+    <button class="btn btn-outline">📥 นำเข้าสต็อก</button>
+    <button class="btn btn-primary" onclick="showAddProduct()">+ เพิ่มสินค้า</button>
+  </div>
+  <div class="inv-stats">
+    <div class="stat-card"><div class="stat-label">สินค้าทั้งหมด</div><div class="stat-val">38</div></div>
+    <div class="stat-card"><div class="stat-label">สต็อกปกติ</div><div class="stat-val green">32</div></div>
+    <div class="stat-card"><div class="stat-label">ใกล้หมด</div><div class="stat-val orange">4</div></div>
+    <div class="stat-card"><div class="stat-label">หมดแล้ว</div><div class="stat-val red">2</div></div>
+  </div>
+  <div class="inv-table-wrap">
+    <table class="inv-table">
+      <thead><tr>
+        <th>Barcode</th><th>ชื่อสินค้า</th><th>หมวดหมู่</th>
+        <th>ราคาขาย</th><th>ต้นทุน</th><th>สต็อก</th><th>สถานะ</th><th></th>
+      </tr></thead>
+      <tbody id="invTableBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== MASTER DATA PAGE ===== -->
+<div class="page" id="page-master">
+  <div class="master-toolbar">
+    <input class="inv-search" placeholder="🔍 ค้นหาสินค้า Barcode หรือชื่อ..." style="max-width:300px">
+    <select class="form-input" style="width:140px; padding:9px 12px">
+      <option>ทุกหมวดหมู่</option>
+      <option>เครื่องดื่ม</option>
+      <option>ขนม</option>
+      <option>ของใช้</option>
+    </select>
+    <div style="flex:1"></div>
+    <button class="btn btn-outline">📤 Export</button>
+    <button class="btn btn-primary" onclick="showAddProduct()">+ เพิ่มสินค้าใหม่</button>
+  </div>
+  <div class="master-content" id="masterContent"></div>
+</div>
+
+<!-- ===== REPORT PAGE ===== -->
+<div class="page" id="page-report">
+  <div class="report-header">
+    <select class="form-input" style="width:160px; padding:9px 12px">
+      <option>วันนี้</option><option>สัปดาห์นี้</option><option>เดือนนี้</option>
+    </select>
+    <button class="btn btn-outline">📤 Export PDF</button>
+    <button class="btn btn-outline">📧 ส่ง Email</button>
+  </div>
+  <div class="report-content">
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">ยอดขายวันนี้</div><div class="kpi-val">฿4,820</div><div class="kpi-sub">▲ +12% จากเมื่อวาน</div></div>
+      <div class="kpi-card" style="border-top-color:var(--accent3)"><div class="kpi-label">จำนวนบิล</div><div class="kpi-val">47</div><div class="kpi-sub">▲ +5 บิล</div></div>
+      <div class="kpi-card" style="border-top-color:var(--blue)"><div class="kpi-label">เฉลี่ย/บิล</div><div class="kpi-val">฿103</div><div class="kpi-sub">▲ +฿8</div></div>
+      <div class="kpi-card" style="border-top-color:var(--red)"><div class="kpi-label">กำไรขั้นต้น</div><div class="kpi-val">฿1,240</div><div class="kpi-sub" style="color:var(--text2)">25.7% margin</div></div>
+    </div>
+    <div class="report-2col">
+      <div class="report-card">
+        <div class="report-card-title">ยอดขายรายชั่วโมง</div>
+        <div class="bar-chart" id="hourlyChart"></div>
+      </div>
+      <div class="report-card">
+        <div class="report-card-title">สินค้าขายดี Top 5</div>
+        <div class="top-list" id="topProducts"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /pages -->
+</div><!-- /app -->
+
+<!-- Add Product Modal -->
+<div class="modal-overlay" id="addModal" onclick="e => e.target===this && closeModal()">
+  <div class="modal">
+    <div class="modal-title">➕ เพิ่มสินค้าใหม่</div>
+    <div class="form-group">
+      <label class="form-label">Barcode *</label>
+      <div style="display:flex; gap:8px">
+        <input class="form-input" id="newBarcode" placeholder="กรอกหรือสแกน Barcode">
+        <button class="btn btn-outline" onclick="lookupBarcode()">🔍 ค้นหา</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ชื่อสินค้า *</label>
+      <input class="form-input" id="newName" placeholder="เช่น กระทิงแดง ฝาแดง">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">ราคาขาย (บาท)</label>
+        <input class="form-input" id="newPrice" type="number" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">ต้นทุน (บาท)</label>
+        <input class="form-input" id="newCost" type="number" placeholder="0.00">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">หมวดหมู่</label>
+        <select class="form-input" id="newCat">
+          <option>เครื่องดื่ม</option><option>ขนม</option><option>ของใช้</option><option>อาหาร</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">สต็อกเริ่มต้น</label>
+        <input class="form-input" id="newStock" type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">รูปสินค้า</label>
+      <input type="file" accept="image/*" class="form-input" style="padding:7px">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveNewProduct()">💾 บันทึก</button>
+      <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== DEMO DATA ==========
+const demoProducts = [
+  { barcode:'8850228003022', name:'กระทิงแดง ฝาแดง', brand:'กระทิงแดง', cat:'เครื่องดื่ม', price:12, cost:8, stock:48, emoji:'🥤' },
+  { barcode:'8850228000083', name:'กระทิงแดง ขวดเล็ก', brand:'กระทิงแดง', cat:'เครื่องดื่ม', price:10, cost:7, stock:60, emoji:'🥤' },
+  { barcode:'8850228000403', name:'สปอนเซอร์', brand:'สปอนเซอร์', cat:'เครื่องดื่ม', price:12, cost:8, stock:3, emoji:'⚡' },
+  { barcode:'8858736911198', name:'พญานาค', brand:'พญานาค', cat:'เครื่องดื่ม', price:15, cost:10, stock:24, emoji:'🐉' },
+  { barcode:'8850228001899', name:'เรดดี้ สีม่วง', brand:'เรดดี้', cat:'เครื่องดื่ม', price:10, cost:6, stock:0, emoji:'💜' },
+  { barcode:'8851123212021', name:'เอ็ม 150 สีเหลือง', brand:'เอ็ม 150', cat:'เครื่องดื่ม', price:12, cost:8, stock:36, emoji:'🌟' },
+  { barcode:'8851123240758', name:'เอ็ม 150 รสน้ำผึ้ง', brand:'เอ็ม 150', cat:'เครื่องดื่มขนม', price:12, cost:8, stock:2, emoji:'🍯' },
+  { barcode:'8854698005050', name:'โออิชิ ชาเขียว 500ml', brand:'โออิชิ', cat:'เครื่องดื่ม', price:20, cost:13, stock:18, emoji:'🍵' },
+  { barcode:'8858891302473', name:'เย็น เย็น 315ml', brand:'เย็นเย็น', cat:'เครื่องดื่ม', price:8, cost:5, stock:30, emoji:'🧊' },
+  { barcode:'8852314004999', name:'โฝม GSD', brand:'GSD', cat:'ของใช้', price:45, cost:30, stock:12, emoji:'🧴' },
+  { barcode:'8855790000011', name:'คาราบาว', brand:'คาราบาว', cat:'เครื่องดื่ม', price:15, cost:10, stock:40, emoji:'🐂' },
+  { barcode:'8850188250207', name:'นมโฟร์โมส เขียว 225ml', brand:'โฟร์โมส', cat:'นม', price:18, cost:13, stock:15, emoji:'🥛' },
+];
+
+let cart = [];
+
+// ========== CLOCK ==========
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH');
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ========== NAVIGATION ==========
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  // highlight clicked tab (desktop or mobile)
+  if (el) el.classList.add('active');
+  // also sync other nav
+  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${name}'`)) t.classList.add('active');
+  });
+  if (name === 'inventory') renderInventory();
+  if (name === 'master') renderMaster();
+  if (name === 'report') renderReport();
+}
+
+// ========== CAMERA SCANNER ==========
+let scannerStream = null;
+let scannerInterval = null;
+let lastScanned = '';
+
+async function openScanner() {
+  const overlay = document.getElementById('scannerOverlay');
+  const video = document.getElementById('scannerVideo');
+  const result = document.getElementById('scannerResult');
+  overlay.classList.add('open');
+  result.textContent = 'กำลังเปิดกล้อง...';
+  lastScanned = '';
+  try {
+    scannerStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = scannerStream;
+    result.textContent = 'จ่อกล้องไปที่ Barcode';
+    startBarcodeDetection(video, result);
+  } catch(e) {
+    result.textContent = '⚠️ ไม่สามารถเปิดกล้องได้ — กรุณาอนุญาตการเข้าถึงกล้อง';
+    console.error(e);
+  }
+}
+
+function startBarcodeDetection(video, resultEl) {
+  // Use BarcodeDetector API if available (Chrome/Android)
+  if ('BarcodeDetector' in window) {
+    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','code_39','upc_a','upc_e'] });
+    scannerInterval = setInterval(async () => {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        try {
+          const barcodes = await detector.detect(video);
+          if (barcodes.length > 0) {
+            const code = barcodes[0].rawValue;
+            if (code !== lastScanned) {
+              lastScanned = code;
+              resultEl.textContent = '✅ พบ: ' + code;
+              handleScannedBarcode(code);
+            }
+          }
+        } catch(e) {}
+      }
+    }, 300);
+  } else {
+    // Fallback: canvas-based simulation hint
+    resultEl.textContent = '⚠️ Browser นี้ไม่รองรับ BarcodeDetector — ลอง Chrome บน Android';
+  }
+}
+
+function handleScannedBarcode(code) {
+  document.getElementById('posSearch').value = code;
+  filterProducts(code);
+  // auto-add if exact match
+  const p = demoProducts.find(x => x.barcode === code);
+  if (p) {
+    setTimeout(() => {
+      addToCart(p.barcode);
+      document.getElementById('posSearch').value = '';
+      filterProducts('');
+      closeScanner();
+      showToast(`📷 สแกนได้: ${p.name}`);
+    }, 600);
+  } else {
+    setTimeout(() => {
+      closeScanner();
+      showToast(`📷 Barcode: ${code} — ไม่พบสินค้า`);
+    }, 800);
+  }
+}
+
+function closeScanner() {
+  document.getElementById('scannerOverlay').classList.remove('open');
+  if (scannerInterval) { clearInterval(scannerInterval); scannerInterval = null; }
+  if (scannerStream) { scannerStream.getTracks().forEach(t => t.stop()); scannerStream = null; }
+  document.getElementById('scannerVideo').srcObject = null;
+  lastScanned = '';
+}
+
+// ========== KEYPAD ==========
+let kpOpen = false;
+
+function toggleKeypad() {
+  kpOpen = !kpOpen;
+  document.getElementById('keypadWrap').classList.toggle('open', kpOpen);
+  document.getElementById('kpToggleBtn').classList.toggle('kp-on', kpOpen);
+}
+
+function kpPress(val) {
+  const inp = document.getElementById('posSearch');
+  inp.value += val;
+  filterProducts(inp.value);
+  inp.focus();
+}
+
+function kpBackspace() {
+  const inp = document.getElementById('posSearch');
+  inp.value = inp.value.slice(0, -1);
+  filterProducts(inp.value);
+}
+
+function addBySearch(val) {
+  const q = val.trim();
+  if (!q) return;
+  const exact = demoProducts.find(p => p.barcode === q);
+  if (exact) {
+    addToCart(exact.barcode);
+    document.getElementById('posSearch').value = '';
+    filterProducts('');
+    return;
+  }
+  const matches = demoProducts.filter(p => p.barcode.includes(q) || p.name.includes(q));
+  if (matches.length === 1) {
+    addToCart(matches[0].barcode);
+    document.getElementById('posSearch').value = '';
+    filterProducts('');
+  } else if (matches.length === 0) {
+    showToast('⚠️ ไม่พบสินค้า');
+  }
+}
+
+// ========== PRODUCT GRID ==========
+function renderProducts(list) {
+  document.getElementById('productGrid').innerHTML = list.map(p => `
+    <div class="product-card ${p.stock===0?'out-of-stock':''}" onclick="addToCart('${p.barcode}')">
+      <div class="pc-img">${p.emoji}</div>
+      <div class="pc-name">${p.name}</div>
+      <div class="pc-price">฿${p.price}</div>
+      <div class="pc-stock ${p.stock<=3&&p.stock>0?'low':''}">${p.stock===0?'หมดแล้ว':p.stock<=3?`⚠️ เหลือ ${p.stock}`:`${p.stock} ชิ้น`}</div>
+    </div>`).join('');
+}
+
+function filterProducts(val) {
+  const q = val.toLowerCase();
+  renderProducts(q ? demoProducts.filter(p => p.name.toLowerCase().includes(q) || p.barcode.includes(q)) : demoProducts);
+}
+
+function handleScanEnter(e) { if(e.key==='Enter') addBySearch(e.target.value); }
+
+function addToCart(barcode) {
+  const p = demoProducts.find(x => x.barcode === barcode);
+  if (!p || p.stock === 0) return;
+  const existing = cart.find(c => c.barcode === barcode);
+  if (existing) { if (existing.qty < p.stock) existing.qty++; }
+  else cart.push({ ...p, qty: 1 });
+  renderCart();
+  showToast(`+ ${p.name}`);
+}
+
+function changeQty(barcode, delta) {
+  const item = cart.find(c => c.barcode === barcode);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty <= 0) cart = cart.filter(c => c.barcode !== barcode);
+  renderCart();
+}
+
+function renderCart() {
+  const el = document.getElementById('cartItems');
+  if (cart.length === 0) {
+    el.innerHTML = `<div style="text-align:center;padding:60px 20px;color:var(--text2);font-size:16px;line-height:2.2">
+      🛒<br>ยังไม่มีสินค้าในตะกร้า<br>
+      <span style="font-size:13px">พิมพ์ค้นหา หรือกดเลือกสินค้าด้านซ้าย</span></div>`;
+    document.getElementById('cartCount').textContent = 0;
+    document.getElementById('sumQty').textContent = '0 ชิ้น';
+    document.getElementById('sumTotal').textContent = '฿0.00';
+    document.getElementById('changeAmt').textContent = '฿0.00';
+    return;
+  }
+  const totalQty = cart.reduce((s,c)=>s+c.qty,0);
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  el.innerHTML = cart.map(c => `
+    <div class="cart-item">
+      <div class="ci-emoji">${c.emoji}</div>
+      <div class="ci-name">${c.name}<br><span style="font-size:13px;color:var(--text2);font-weight:400">฿${c.price} / ชิ้น</span></div>
+      <div class="ci-qty-row">
+        <button class="ci-btn" onclick="changeQty('${c.barcode}',-1)">−</button>
+        <span class="ci-qty">${c.qty}</span>
+        <button class="ci-btn" onclick="changeQty('${c.barcode}',1)">+</button>
+      </div>
+      <div class="ci-price">฿${(c.price*c.qty).toFixed(0)}</div>
+      <span class="ci-del" onclick="changeQty('${c.barcode}',-999)">✕</span>
+    </div>`).join('');
+  document.getElementById('cartCount').textContent = cart.length;
+  document.getElementById('sumQty').textContent = totalQty + ' ชิ้น';
+  document.getElementById('sumTotal').textContent = '฿'+total.toFixed(2);
+  calcChange();
+}
+
+function calcChange() {
+  const pay = parseFloat(document.getElementById('payAmount').value)||0;
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const change = pay - total;
+  document.getElementById('changeAmt').textContent = change >= 0 ? '฿'+change.toFixed(2) : '฿0.00';
+}
+
+function clearCart() { cart = []; renderCart(); document.getElementById('payAmount').value=''; }
+
+function processSale() {
+  if (cart.length===0) { showToast('⚠️ ยังไม่มีสินค้าในตะกร้า'); return; }
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  const pay = parseFloat(document.getElementById('payAmount').value)||0;
+  if (pay < total) { showToast('⚠️ รับเงินไม่พอ'); return; }
+  cart.forEach(c => { const p = demoProducts.find(x=>x.barcode===c.barcode); if(p) p.stock -= c.qty; });
+  showToast(`✅ ชำระเสร็จ เงินทอน ฿${(pay-total).toFixed(2)}`);
+  clearCart();
+  renderProducts(demoProducts);
+}
+
+// ========== INVENTORY ==========
+function renderInventory() {
+  document.getElementById('invTableBody').innerHTML = demoProducts.map(p => {
+    const status = p.stock===0 ? '<span class="stock-badge badge-out">⛔ หมด</span>' :
+      p.stock<=3 ? '<span class="stock-badge badge-low">⚠️ ใกล้หมด</span>' :
+      '<span class="stock-badge badge-ok">✅ ปกติ</span>';
+    return `<tr>
+      <td class="barcode-mono">${p.barcode}</td>
+      <td><strong>${p.name}</strong></td>
+      <td><span style="background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:12px">${p.cat}</span></td>
+      <td>฿${p.price}</td>
+      <td style="color:var(--text2)">฿${p.cost}</td>
+      <td><strong style="font-family:'IBM Plex Mono',monospace">${p.stock}</strong></td>
+      <td>${status}</td>
+      <td><button class="btn btn-outline" style="font-size:11px;padding:4px 10px">แก้ไข</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== MASTER DATA ==========
+function renderMaster() {
+  document.getElementById('masterContent').innerHTML = demoProducts.map(p => `
+    <div class="master-card">
+      <div class="mc-img">
+        ${p.emoji}
+        <span class="mc-badge ${p.stock===0?'badge-out':p.stock<=3?'badge-low':'badge-ok'}">${p.stock===0?'หมด':p.stock<=3?'ใกล้หมด':'มีสต็อก'}</span>
+      </div>
+      <div class="mc-body">
+        <div class="mc-name">${p.name}</div>
+        <div class="mc-barcode">${p.barcode}</div>
+        <div class="mc-footer">
+          <div class="mc-price">฿${p.price}</div>
+          <span class="mc-cat">${p.cat}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ========== REPORT ==========
+function renderReport() {
+  const hours = ['08','09','10','11','12','13','14','15','16','17'];
+  const sales = [120,380,540,720,890,650,480,920,750,390];
+  const max = Math.max(...sales);
+  document.getElementById('hourlyChart').innerHTML = hours.map((h,i) => `
+    <div class="bar-row">
+      <div class="bar-label">${h}:00 น.</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${sales[i]/max*100}%"></div></div>
+      <div class="bar-val">฿${sales[i]}</div>
+    </div>`).join('');
+
+  const tops = [
+    {name:'กระทิงแดง ฝาแดง', qty:42, amt:504},
+    {name:'คาราบาว', qty:38, amt:570},
+    {name:'สปอนเซอร์', qty:31, amt:372},
+    {name:'โออิชิ ชาเขียว', qty:28, amt:560},
+    {name:'เย็น เย็น', qty:24, amt:192},
+  ];
+  const rankClass = ['gold','silver','bronze','',''];
+  document.getElementById('topProducts').innerHTML = tops.map((t,i) => `
+    <div class="top-item">
+      <div class="top-rank ${rankClass[i]}">${i+1}</div>
+      <div class="top-name">${t.name}</div>
+      <div class="top-qty">${t.qty} ชิ้น</div>
+      <div class="top-amt">฿${t.amt}</div>
+    </div>`).join('');
+}
+
+// ========== MODAL ==========
+function showAddProduct() { document.getElementById('addModal').classList.add('open'); }
+function closeModal() { document.getElementById('addModal').classList.remove('open'); }
+document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+
+function lookupBarcode() {
+  const bc = document.getElementById('newBarcode').value.trim();
+  if (!bc) return;
+  showToast('🔍 กำลังค้นหา...');
+  setTimeout(() => {
+    document.getElementById('newName').value = 'กระทิงแดง ฝาแดง (ตัวอย่าง)';
+    document.getElementById('newCat').value = 'เครื่องดื่ม';
+    showToast('✅ พบข้อมูลสินค้า');
+  }, 800);
+}
+
+function saveNewProduct() {
+  const name = document.getElementById('newName').value.trim();
+  if (!name) { showToast('⚠️ กรุณากรอกชื่อสินค้า'); return; }
+  showToast('✅ บันทึกสินค้าสำเร็จ!');
+  closeModal();
+}
+
+// ========== TOAST ==========
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ========== INIT ==========
+renderProducts(demoProducts);
+// Set initial bottom tab active
+document.querySelectorAll('.bottom-tab').forEach(t => {
+  if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'pos'")) t.classList.add('active');
+});
+</script>
+</body>
+</html>
