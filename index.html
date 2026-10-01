@@ -734,6 +734,26 @@ body {
 @media (max-width: 768px) {
   #page-manager { padding: 16px; }
 }
+
+/* ===== BARCODE BOOK ===== */
+.barcode-book-overlay { display: none; position: fixed; inset: 0; background: #fff; z-index: 300; flex-direction: column; overflow: hidden; }
+.barcode-book-overlay.open { display: flex; }
+.bb-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); color: var(--text); flex-shrink: 0; }
+.bb-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+.bb-label { border: 1.5px dashed #999; border-radius: 8px; padding: 10px 8px; text-align: center; background: #fff; color: #000; }
+.bb-label .bb-name { font-size: 12px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; min-height: 2.6em; }
+.bb-label .bb-price { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.bb-label svg { max-width: 100%; }
+.bb-label .bb-code { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #444; margin-top: 2px; }
+
+@media print {
+  body * { visibility: hidden; }
+  .barcode-book-overlay, .barcode-book-overlay * { visibility: visible; }
+  .barcode-book-overlay { position: absolute; inset: 0; }
+  .no-print { display: none !important; }
+  .bb-grid { padding: 0; gap: 8px; }
+  .bb-label { break-inside: avoid; }
+}
 </style>
 </head>
 <body>
@@ -988,10 +1008,22 @@ body {
       <option>ของใช้</option>
     </select>
     <div style="flex:1"></div>
-    <button class="btn btn-outline">📤 Export</button>
+    <button class="btn btn-outline" onclick="openBarcodeBook()">🖨️ พิมพ์สมุดบาร์โค้ด</button>
     <button class="btn btn-primary" onclick="showAddProduct()">+ เพิ่มสินค้าใหม่</button>
   </div>
   <div class="master-content" id="masterContent"></div>
+</div>
+
+<!-- ===== BARCODE BOOK (สมุดบาร์โค้ดสำหรับสินค้า Local — พิมพ์ด้วย Ctrl/Cmd+P) ===== -->
+<div class="barcode-book-overlay" id="barcodeBook">
+  <div class="bb-toolbar no-print">
+    <div style="font-weight:700">🏷️ สมุดบาร์โค้ด — ทั้งหมด <span id="bbCount">0</span> รายการ</div>
+    <div style="display:flex; gap:10px">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+      <button class="btn btn-outline" onclick="closeBarcodeBook()">✕ ปิด</button>
+    </div>
+  </div>
+  <div class="bb-grid" id="bbGrid"></div>
 </div>
 
 <!-- ===== REPORT PAGE ===== -->
@@ -1052,6 +1084,7 @@ body {
       <div style="display:flex; gap:8px">
         <input class="form-input" id="newBarcode" placeholder="กรอกหรือสแกน Barcode">
         <button class="btn btn-outline" onclick="lookupBarcode()">🔍 ค้นหา</button>
+        <button class="btn btn-outline" id="genBarcodeBtn" onclick="genLocalBarcode()" title="สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดจากโรงงาน">🏷️ Gen</button>
       </div>
     </div>
     <div class="form-group">
@@ -1123,6 +1156,7 @@ body {
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
 <script>
 // ========== DEMO DATA ==========
 // Stock is tracked as "lots" (ล็อตที่รับเข้าแต่ละครั้ง พร้อมต้นทุน ณ ตอนนั้น)
@@ -1687,6 +1721,42 @@ function closeModal() {
 }
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
+
+// ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
+function genLocalBarcode() {
+  let code;
+  do { code = 'LC' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*36).toString(36).toUpperCase(); }
+  while (demoProducts.some(p => p.barcode === code));
+  document.getElementById('newBarcode').value = code;
+  showToast('🏷️ สร้างรหัสบาร์โค้ดภายในร้านแล้ว — บันทึกสินค้าแล้วพิมพ์จาก "สมุดบาร์โค้ด" ได้เลย');
+}
+
+// ========== BARCODE BOOK (พิมพ์สมุดบาร์โค้ดทั้งร้าน) ==========
+function openBarcodeBook() {
+  renderBarcodeBook();
+  document.getElementById('barcodeBook').classList.add('open');
+}
+function closeBarcodeBook() {
+  document.getElementById('barcodeBook').classList.remove('open');
+}
+function renderBarcodeBook() {
+  const grid = document.getElementById('bbGrid');
+  document.getElementById('bbCount').textContent = demoProducts.length;
+  grid.innerHTML = demoProducts.map((p,i) => `
+    <div class="bb-label">
+      <div class="bb-name">${p.emoji} ${p.name}</div>
+      <div class="bb-price">฿${p.price}</div>
+      <svg id="bbSvg${i}"></svg>
+      <div class="bb-code">${p.barcode}</div>
+    </div>`).join('');
+  demoProducts.forEach((p,i) => {
+    try {
+      if (window.JsBarcode) {
+        JsBarcode('#bbSvg' + i, p.barcode, { format: 'CODE128', width: 1.6, height: 42, fontSize: 11, margin: 2 });
+      }
+    } catch (e) {}
+  });
+}
 
 function lookupBarcode() {
   const bc = document.getElementById('newBarcode').value.trim();
