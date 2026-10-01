@@ -64,6 +64,8 @@ body {
 .nav-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .nav-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
 .nav-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: rgba(255,255,255,0.8); }
+.user-select { background: rgba(255,255,255,0.12); color: #fff; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 5px 10px; font-family: 'Sarabun', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+.user-select option { color: #000; }
 .nav-time { font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
 
 /* Mobile bottom nav */
@@ -504,6 +506,14 @@ body {
   border-radius: 12px;
 }
 .sum-total span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.cash-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.cash-btn {
+  background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 10px 4px; font-size: 14px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer; transition: all 0.1s; color: var(--accent);
+}
+.cash-btn:hover { border-color: var(--accent2); background: #e8f4e8; }
+.cash-btn:active { transform: scale(0.94); background: var(--accent2); color: #fff; }
 .pay-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
 .pay-label { font-size: 15px; font-weight: 600; color: var(--text2); white-space: nowrap; }
 .pay-input {
@@ -632,6 +642,7 @@ body {
 .mc-footer { display: flex; justify-content: space-between; align-items: center; }
 .mc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
 .mc-cat { font-size: 11px; background: var(--surface2); padding: 3px 8px; border-radius: 20px; color: var(--text2); }
+.manual-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
 
 /* Add product modal */
 .modal-overlay {
@@ -739,20 +750,25 @@ body {
 .barcode-book-overlay { display: none; position: fixed; inset: 0; background: #fff; z-index: 300; flex-direction: column; overflow: hidden; }
 .barcode-book-overlay.open { display: flex; }
 .bb-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; background: var(--surface2); border-bottom: 1px solid var(--border); color: var(--text); flex-shrink: 0; }
-.bb-grid { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
-.bb-label { border: 1.5px dashed #999; border-radius: 8px; padding: 10px 8px; text-align: center; background: #fff; color: #000; }
-.bb-label .bb-name { font-size: 12px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; min-height: 2.6em; }
-.bb-label .bb-price { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-.bb-label svg { max-width: 100%; }
-.bb-label .bb-code { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #444; margin-top: 2px; }
+.bb-grid { flex: 1; overflow-y: auto; padding: 20px; max-width: 600px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 0; }
+.bb-label {
+  display: flex; align-items: center; gap: 18px;
+  border-bottom: 2px dashed #bbb; padding: 16px 6px; text-align: left; background: #fff; color: #000;
+}
+.bb-label:last-child { border-bottom: none; }
+.bb-label .bb-info { flex: 1; min-width: 0; }
+.bb-label .bb-name { font-size: 15px; font-weight: 700; line-height: 1.3; }
+.bb-label .bb-price { font-size: 14px; font-weight: 700; color: #333; margin-top: 2px; }
+.bb-label svg { flex-shrink: 0; }
+.bb-label .bb-code { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #444; margin-top: 4px; }
 
 @media print {
   body * { visibility: hidden; }
   .barcode-book-overlay, .barcode-book-overlay * { visibility: visible; }
   .barcode-book-overlay { position: absolute; inset: 0; }
   .no-print { display: none !important; }
-  .bb-grid { padding: 0; gap: 8px; }
-  .bb-label { break-inside: avoid; }
+  .bb-grid { padding: 0; max-width: none; }
+  .bb-label { break-inside: avoid; padding-block: 20px; }
 }
 </style>
 </head>
@@ -771,7 +787,9 @@ body {
     <button class="nav-tab" onclick="showPage('manager',this)">📋 จัดการ<span class="alert-badge" id="navAlertBadge" style="display:none"></span></button>
   </div>
   <div class="nav-right">
-    <span>👤 แม่ค้า</span>
+    <select id="currentUserSelect" class="user-select" onchange="setCurrentUser(this.value)" title="เลือกว่าใครกำลังใช้งาน — ใช้บันทึกว่าใครเป็นคนแก้ไขราคา/สินค้า">
+      <option>แม่</option><option>พ่อ</option><option>ลูก</option><option>พนักงาน</option>
+    </select>
     <span class="nav-time" id="clock">--:--:--</span>
   </div>
 </nav>
@@ -963,9 +981,11 @@ body {
     <div class="cart-summary">
       <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
       <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
+      <div class="cash-grid" id="cashGrid"></div>
       <div class="pay-row">
         <span class="pay-label">รับเงิน</span>
-        <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()">
+        <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()" title="พิมพ์เองกรณีฉุกเฉิน — ปกติใช้ปุ่มธนบัตรด้านบน">
+        <button class="btn btn-outline" style="flex-shrink:0" onclick="clearCash()">ล้าง</button>
       </div>
       <div class="change-row"><span>เงินทอน</span><span id="changeAmt">฿0.00</span></div>
       <button class="btn-pay" onclick="processSale()">💳 ชำระเงิน</button>
@@ -1000,12 +1020,22 @@ body {
 <!-- ===== MASTER DATA PAGE ===== -->
 <div class="page" id="page-master">
   <div class="master-toolbar">
-    <input class="inv-search" placeholder="🔍 ค้นหาสินค้า Barcode หรือชื่อ..." style="max-width:300px">
-    <select class="form-input" style="width:140px; padding:9px 12px">
+    <input class="inv-search" id="masterSearch" placeholder="🔍 ค้นหาสินค้า Barcode หรือชื่อ..." style="max-width:300px" oninput="renderMaster()">
+    <select class="form-input" id="masterCatFilter" style="width:140px; padding:9px 12px" onchange="renderMaster()">
       <option>ทุกหมวดหมู่</option>
       <option>เครื่องดื่ม</option>
       <option>ขนม</option>
       <option>ของใช้</option>
+      <option>อาหาร</option>
+      <option>นม</option>
+    </select>
+    <select class="form-input" id="masterSort" style="width:170px; padding:9px 12px" onchange="renderMaster()">
+      <option value="name-asc">เรียง: ชื่อ ก-ฮ</option>
+      <option value="name-desc">เรียง: ชื่อ ฮ-ก</option>
+      <option value="price-asc">เรียง: ราคา น้อย→มาก</option>
+      <option value="price-desc">เรียง: ราคา มาก→น้อย</option>
+      <option value="stock-asc">เรียง: สต็อก น้อย→มาก</option>
+      <option value="stock-desc">เรียง: สต็อก มาก→น้อย</option>
     </select>
     <div style="flex:1"></div>
     <button class="btn btn-outline" onclick="openBarcodeBook()">🖨️ พิมพ์สมุดบาร์โค้ด</button>
@@ -1070,6 +1100,16 @@ body {
     <div class="report-card-title">⏳ สั่งของแล้ว — รอของเข้า</div>
     <div id="snoozedList" style="display:flex;flex-direction:column;gap:8px"></div>
   </div>
+
+  <div class="report-card">
+    <div class="report-card-title">📝 ประวัติการปรับราคา</div>
+    <div class="inv-table-wrap" style="padding:0">
+      <table class="inv-table">
+        <thead><tr><th>วันที่/เวลา</th><th>สินค้า</th><th>จากราคา</th><th>เป็นราคา</th><th>ผู้แก้ไข</th></tr></thead>
+        <tbody id="priceLogBody"></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 </div><!-- /pages -->
@@ -1084,7 +1124,7 @@ body {
       <div style="display:flex; gap:8px">
         <input class="form-input" id="newBarcode" placeholder="กรอกหรือสแกน Barcode">
         <button class="btn btn-outline" onclick="lookupBarcode()">🔍 ค้นหา</button>
-        <button class="btn btn-outline" id="genBarcodeBtn" onclick="genLocalBarcode()" title="สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดจากโรงงาน">🏷️ Gen</button>
+        <button class="btn btn-outline" id="genBarcodeBtn" onclick="genLocalBarcode()" title="สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดจากโรงงาน">🏷️ Manual Gen</button>
       </div>
     </div>
     <div class="form-group">
@@ -1161,10 +1201,11 @@ body {
 // ========== DEMO DATA ==========
 // Stock is tracked as "lots" (ล็อตที่รับเข้าแต่ละครั้ง พร้อมต้นทุน ณ ตอนนั้น)
 // เวลาขาย จะตัดจาก lot เก่าสุดก่อน (FIFO) เพื่อให้รู้ต้นทุน/กำไรจริงของของที่ขายไปแล้ว
-function mkProduct(barcode, name, brand, cat, price, cost, stock, emoji, safetyStock) {
+function mkProduct(barcode, name, brand, cat, price, cost, stock, emoji, safetyStock, manualGen) {
   return {
     barcode, name, brand, cat, price, emoji,
     safetyStock,
+    manualGen: !!manualGen,
     lots: stock > 0 ? [{ id: 'L0_' + barcode, qty: stock, cost, date: Date.now() - 7 * 86400000 }] : [],
     priceHistory: [{ price, date: Date.now() - 7 * 86400000 }]
   };
@@ -1183,11 +1224,14 @@ let demoProducts = [
   mkProduct('8852314004999','โฟม GSD','GSD','ของใช้',45,30,12,'🧴',4),
   mkProduct('8855790000011','คาราบาว','คาราบาว','เครื่องดื่ม',15,10,40,'🐂',8),
   mkProduct('8850188250207','นมโฟร์โมส เขียว 225ml','โฟร์โมส','นม',18,13,15,'🥛',6),
+  mkProduct('LC0D8F2K01','ถุงขนมแม่ค้า (Local)','ร้านเรา','ขนม',10,5,25,'🍬',8,true),
 ];
 
 let cart = [];
-let salesLog = [];     // รายการขายจริงที่เกิดขึ้น ใช้คำนวณกำไรจริงและรายงาน
-let snoozes = {};      // { barcode: timestamp ที่จะเตือนอีกครั้ง } — กัน alert เด้งซ้ำทุกวันหลังกดสั่งของแล้ว
+let salesLog = [];       // รายการขายจริงที่เกิดขึ้น ใช้คำนวณกำไรจริงและรายงาน
+let snoozes = {};        // { barcode: timestamp ที่จะเตือนอีกครั้ง } — กัน alert เด้งซ้ำทุกวันหลังกดสั่งของแล้ว
+let priceChanges = [];   // log การปรับราคาทุกครั้ง: ใคร ปรับอะไร จากเท่าไหร่ เป็นเท่าไหร่ เมื่อไหร่
+let currentUser = 'แม่'; // ผู้ใช้งานปัจจุบัน (ยังไม่ใช่ระบบ login จริง — ดูหมายเหตุที่ setCurrentUser)
 
 // ========== LOCAL PERSISTENCE ==========
 // เก็บลง localStorage ของเครื่องนี้ ใช้งานได้ต่อแม้ปิดหน้าเว็บ/ไฟดับ/ไม่มีเน็ต
@@ -1201,7 +1245,7 @@ function loadState() {
 }
 function saveState() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ products: demoProducts, salesLog, snoozes }));
+    localStorage.setItem(LS_KEY, JSON.stringify({ products: demoProducts, salesLog, snoozes, priceChanges, currentUser }));
   } catch (e) {}
 }
 (function initState() {
@@ -1210,10 +1254,19 @@ function saveState() {
     demoProducts = saved.products;
     salesLog = saved.salesLog || [];
     snoozes = saved.snoozes || {};
+    priceChanges = saved.priceChanges || [];
+    currentUser = saved.currentUser || 'แม่';
   } else {
     saveState();
   }
 })();
+
+// "ผู้ใช้งานปัจจุบัน" เป็นตัวเลือกง่ายๆ ไว้แปะชื่อคนแก้ไขเท่านั้น ยังไม่ใช่ระบบ login/password จริง
+// (ของจริงต้องรอต่อ Supabase Auth — ใครๆ ก็สลับชื่อในนี้ได้ตอนนี้)
+function setCurrentUser(name) {
+  currentUser = name;
+  saveState();
+}
 
 // ========== STOCK / LOT HELPERS ==========
 function totalStock(p) { return p.lots.reduce((s, l) => s + l.qty, 0); }
@@ -1296,6 +1349,19 @@ function renderManager() {
     document.getElementById('mgrTodayTotal').textContent = '฿' + total.toFixed(2);
     document.getElementById('mgrTodayBills').textContent = todaySales.length;
     document.getElementById('mgrTodayProfit').textContent = '฿' + profit.toFixed(2);
+  }
+
+  const logBody = document.getElementById('priceLogBody');
+  if (logBody) {
+    const rows = [...priceChanges].sort((a,b) => b.date - a.date).slice(0, 50);
+    logBody.innerHTML = rows.length ? rows.map(c => `
+      <tr>
+        <td style="color:var(--text2);font-size:12px">${new Date(c.date).toLocaleString('th-TH')}</td>
+        <td><strong>${c.name}</strong></td>
+        <td>฿${c.prevPrice}</td>
+        <td style="color:var(--accent);font-weight:700">฿${c.newPrice}</td>
+        <td>${c.user}</td>
+      </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:16px">— ยังไม่มีการปรับราคา —</td></tr>`;
   }
 }
 
@@ -1521,7 +1587,25 @@ function calcChange() {
   document.getElementById('changeAmt').textContent = change >= 0 ? '฿'+change.toFixed(2) : '฿0.00';
 }
 
-function clearCart() { cart = []; renderCart(); document.getElementById('payAmount').value=''; }
+// ========== CASH DENOMINATION BUTTONS ==========
+// ปกติแม่กดปุ่มธนบัตร/เหรียญบวกเงินเข้า ไม่ต้องพิมพ์เอง — ช่อง payAmount ไว้พิมพ์เองเฉพาะกรณีฉุกเฉิน
+const CASH_DENOMS = [1000, 500, 100, 50, 20, 10, 5, 2, 1];
+function renderCashGrid() {
+  document.getElementById('cashGrid').innerHTML = CASH_DENOMS.map(d =>
+    `<button class="cash-btn" onclick="addCash(${d})">+${d}</button>`
+  ).join('');
+}
+function addCash(amount) {
+  const inp = document.getElementById('payAmount');
+  inp.value = (parseFloat(inp.value) || 0) + amount;
+  calcChange();
+}
+function clearCash() {
+  document.getElementById('payAmount').value = '';
+  calcChange();
+}
+
+function clearCart() { cart = []; renderCart(); clearCash(); }
 
 function processSale() {
   if (cart.length===0) { showToast('⚠️ ยังไม่มีสินค้าในตะกร้า'); return; }
@@ -1566,7 +1650,7 @@ function renderInventory() {
     else if (stock <= p.safetyStock) { status = '<span class="stock-badge badge-low">⚠️ ใกล้หมด</span>'; low++; }
     else { status = '<span class="stock-badge badge-ok">✅ ปกติ</span>'; ok++; }
     return `<tr>
-      <td class="barcode-mono">${p.barcode}</td>
+      <td class="barcode-mono">${p.barcode}${p.manualGen ? '<br><span class="manual-tag">🏷️ Manual Barcode Gen</span>' : ''}</td>
       <td><strong>${p.name}</strong></td>
       <td><span style="background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:12px">${p.cat}</span></td>
       <td>฿${p.price}</td>
@@ -1612,9 +1696,28 @@ function saveReceiveStock() {
   renderInventory(); renderMaster(); renderProducts(demoProducts); renderManager();
 }
 
-// ========== MASTER DATA ==========
+// ========== MASTER DATA (ค้นหา / กรองหมวดหมู่ / เรียงลำดับ) ==========
 function renderMaster() {
-  document.getElementById('masterContent').innerHTML = demoProducts.map(p => {
+  const q = (document.getElementById('masterSearch').value || '').trim().toLowerCase();
+  const cat = document.getElementById('masterCatFilter').value;
+  const sort = document.getElementById('masterSort').value;
+
+  let list = demoProducts.filter(p =>
+    (!q || p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q)) &&
+    (cat === 'ทุกหมวดหมู่' || p.cat === cat)
+  );
+
+  const sorters = {
+    'name-asc': (a,b) => a.name.localeCompare(b.name, 'th'),
+    'name-desc': (a,b) => b.name.localeCompare(a.name, 'th'),
+    'price-asc': (a,b) => a.price - b.price,
+    'price-desc': (a,b) => b.price - a.price,
+    'stock-asc': (a,b) => totalStock(a) - totalStock(b),
+    'stock-desc': (a,b) => totalStock(b) - totalStock(a),
+  };
+  list = list.slice().sort(sorters[sort] || sorters['name-asc']);
+
+  document.getElementById('masterContent').innerHTML = list.length ? list.map(p => {
     const stock = totalStock(p);
     return `
     <div class="master-card" onclick="editProduct('${p.barcode}')">
@@ -1629,9 +1732,10 @@ function renderMaster() {
           <div class="mc-price">฿${p.price}</div>
           <span class="mc-cat">${p.cat}</span>
         </div>
+        ${p.manualGen ? '<div class="manual-tag">🏷️ Manual Barcode Gen</div>' : ''}
       </div>
     </div>`;
-  }).join('');
+  }).join('') : `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">ไม่พบสินค้าที่ค้นหา</div>`;
 }
 
 // ========== REPORT (คำนวณจากยอดขายจริงของวันนี้) ==========
@@ -1681,9 +1785,11 @@ function renderReport() {
 
 // ========== ADD / EDIT PRODUCT MODAL ==========
 let editingBarcode = null;
+let pendingManualGen = false; // true เมื่อกด "Manual Gen" ค้างไว้ระหว่างกรอกฟอร์มเพิ่มสินค้าใหม่
 
 function showAddProduct() {
   editingBarcode = null;
+  pendingManualGen = false;
   document.getElementById('productModalTitle').textContent = '➕ เพิ่มสินค้าใหม่';
   document.getElementById('newBarcode').value = '';
   document.getElementById('newBarcode').disabled = false;
@@ -1695,6 +1801,7 @@ function showAddProduct() {
   document.getElementById('newCat').value = 'เครื่องดื่ม';
   document.getElementById('costStockRow').style.display = 'grid';
   document.getElementById('newImageRow').style.display = 'block';
+  document.getElementById('genBarcodeBtn').style.display = 'inline-block';
   document.getElementById('addModal').classList.add('open');
 }
 
@@ -1702,6 +1809,7 @@ function editProduct(barcode) {
   const p = demoProducts.find(x => x.barcode === barcode);
   if (!p) return;
   editingBarcode = barcode;
+  pendingManualGen = false;
   document.getElementById('productModalTitle').textContent = '✏️ แก้ไขสินค้า: ' + p.name;
   document.getElementById('newBarcode').value = p.barcode;
   document.getElementById('newBarcode').disabled = true;
@@ -1712,6 +1820,7 @@ function editProduct(barcode) {
   // แก้ไขราคา/ชื่อ/หมวดหมู่ที่นี่ — ส่วนสต็อก/ต้นทุนให้ไปที่ "รับของเข้าสต็อก" แทน เพื่อให้ Lot ถูกต้อง
   document.getElementById('costStockRow').style.display = 'none';
   document.getElementById('newImageRow').style.display = 'none';
+  document.getElementById('genBarcodeBtn').style.display = 'none'; // barcode ถูกล็อกตอนแก้ไข ไม่ให้ gen ทับ
   document.getElementById('addModal').classList.add('open');
 }
 
@@ -1728,10 +1837,11 @@ function genLocalBarcode() {
   do { code = 'LC' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*36).toString(36).toUpperCase(); }
   while (demoProducts.some(p => p.barcode === code));
   document.getElementById('newBarcode').value = code;
+  pendingManualGen = true;
   showToast('🏷️ สร้างรหัสบาร์โค้ดภายในร้านแล้ว — บันทึกสินค้าแล้วพิมพ์จาก "สมุดบาร์โค้ด" ได้เลย');
 }
 
-// ========== BARCODE BOOK (พิมพ์สมุดบาร์โค้ดทั้งร้าน) ==========
+// ========== BARCODE BOOK (พิมพ์เฉพาะสินค้าที่ Manual Gen — ของมี barcode โรงงานอยู่แล้วไม่ต้องพิมพ์) ==========
 function openBarcodeBook() {
   renderBarcodeBook();
   document.getElementById('barcodeBook').classList.add('open');
@@ -1741,18 +1851,26 @@ function closeBarcodeBook() {
 }
 function renderBarcodeBook() {
   const grid = document.getElementById('bbGrid');
-  document.getElementById('bbCount').textContent = demoProducts.length;
-  grid.innerHTML = demoProducts.map((p,i) => `
+  const list = demoProducts.filter(p => p.manualGen);
+  document.getElementById('bbCount').textContent = list.length;
+  if (!list.length) {
+    grid.innerHTML = `<div style="text-align:center;padding:60px 20px;color:#777">ยังไม่มีสินค้าที่ Gen บาร์โค้ดเอง<br><span style="font-size:13px">ของที่มีบาร์โค้ดจากโรงงานอยู่แล้วไม่ต้องพิมพ์ซ้ำ</span></div>`;
+    return;
+  }
+  // เรียง 1 รายการต่อ 1 แถว เว้นระยะชัดเจน กันยิงสแกนแล้วโดนบาร์โค้ดข้างเคียง
+  grid.innerHTML = list.map((p,i) => `
     <div class="bb-label">
-      <div class="bb-name">${p.emoji} ${p.name}</div>
-      <div class="bb-price">฿${p.price}</div>
+      <div class="bb-info">
+        <div class="bb-name">${p.emoji} ${p.name}</div>
+        <div class="bb-price">฿${p.price}</div>
+        <div class="bb-code">${p.barcode}</div>
+      </div>
       <svg id="bbSvg${i}"></svg>
-      <div class="bb-code">${p.barcode}</div>
     </div>`).join('');
-  demoProducts.forEach((p,i) => {
+  list.forEach((p,i) => {
     try {
       if (window.JsBarcode) {
-        JsBarcode('#bbSvg' + i, p.barcode, { format: 'CODE128', width: 1.6, height: 42, fontSize: 11, margin: 2 });
+        JsBarcode('#bbSvg' + i, p.barcode, { format: 'CODE128', width: 2.2, height: 60, fontSize: 13, margin: 4 });
       }
     } catch (e) {}
   });
@@ -1779,7 +1897,10 @@ function saveNewProduct() {
   if (editingBarcode) {
     const p = demoProducts.find(x => x.barcode === editingBarcode);
     if (p) {
-      if (p.price !== price) p.priceHistory.push({ price, date: Date.now() });
+      if (p.price !== price) {
+        p.priceHistory.push({ price, date: Date.now() });
+        priceChanges.push({ barcode: p.barcode, name, prevPrice: p.price, newPrice: price, date: Date.now(), user: currentUser });
+      }
       p.name = name; p.price = price; p.cat = cat; p.safetyStock = safetyStock;
     }
     showToast('✅ บันทึกการแก้ไขสำเร็จ!');
@@ -1789,7 +1910,7 @@ function saveNewProduct() {
     if (demoProducts.some(p => p.barcode === barcode)) { showToast('⚠️ Barcode นี้มีอยู่แล้ว'); return; }
     const cost = parseFloat(document.getElementById('newCost').value) || 0;
     const stock = parseInt(document.getElementById('newStock').value) || 0;
-    demoProducts.push(mkProduct(barcode, name, name, cat, price, cost, stock, '📦', safetyStock));
+    demoProducts.push(mkProduct(barcode, name, name, cat, price, cost, stock, '📦', safetyStock, pendingManualGen));
     showToast('✅ เพิ่มสินค้าสำเร็จ!');
   }
   saveState();
@@ -1810,6 +1931,8 @@ function showToast(msg) {
 // ========== INIT ==========
 renderProducts(demoProducts);
 renderManager();
+renderCashGrid();
+document.getElementById('currentUserSelect').value = currentUser;
 // Set initial bottom tab active
 document.querySelectorAll('.bottom-tab').forEach(t => {
   if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'pos'")) t.classList.add('active');
