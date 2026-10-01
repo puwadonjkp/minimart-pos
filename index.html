@@ -452,8 +452,8 @@ body {
 .product-card:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card:active { transform: scale(0.96); }
 .product-card.out-of-stock { opacity: 0.38; pointer-events: none; }
-.pc-img { font-size: 34px; margin-bottom: 5px; height: 52px; display: flex; align-items: center; justify-content: center; }
-.pc-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.pc-img { font-size: 34px; margin-bottom: 5px; aspect-ratio: 2 / 3; width: 100%; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; overflow: hidden; }
+.pc-img img { width: 100%; height: 100%; object-fit: cover; }
 .pc-name { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
 .pc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
 .pc-stock { font-size: 11.5px; color: var(--text2); margin-top: 2px; }
@@ -495,7 +495,8 @@ body {
   align-items: center;
   gap: 14px;
 }
-.ci-emoji { font-size: 28px; flex-shrink: 0; }
+.ci-thumb { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; cursor: zoom-in; }
+.ci-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .ci-name { flex: 1; font-size: 16px; font-weight: 600; line-height: 1.4; }
 .ci-qty-row { display: flex; align-items: center; gap: 10px; }
 .ci-btn {
@@ -510,7 +511,11 @@ body {
   transition: all 0.1s;
 }
 .ci-btn:hover { border-color: var(--accent2); color: var(--accent); background: #e8f4e8; }
-.ci-qty { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; min-width: 28px; text-align: center; }
+.ci-qty-input {
+  font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; width: 48px; text-align: center;
+  border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); padding: 6px 2px; color: var(--text);
+}
+.ci-qty-input:focus { border-color: var(--accent2); outline: none; }
 .ci-price { font-size: 18px; font-weight: 700; color: var(--accent); min-width: 80px; text-align: right; font-family: 'IBM Plex Mono', monospace; }
 .ci-del { color: var(--red); font-size: 20px; cursor: pointer; padding: 4px 6px; opacity: 0.6; }
 .ci-del:hover { opacity: 1; }
@@ -519,7 +524,17 @@ body {
   padding: 18px 24px;
   border-top: 2px solid var(--border);
   background: var(--surface2);
+  flex-shrink: 0;
+  max-height: 70vh;
+  overflow-y: auto;
+  position: relative;
 }
+.cart-resizer {
+  position: absolute; top: -5px; left: 0; right: 0; height: 10px;
+  cursor: row-resize; z-index: 5; touch-action: none;
+}
+.cart-resizer::after { content:''; position:absolute; left:0; right:0; top:3px; height:3px; background:var(--border); border-radius:2px; margin:0 auto; width:60px; left:50%; transform:translateX(-50%); }
+.cart-resizer:hover::after, .cart-resizer.dragging::after { background: var(--accent2); }
 .sum-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--text2); margin-bottom: 8px; }
 .sum-total {
   display: flex; justify-content: space-between;
@@ -532,12 +547,14 @@ body {
 .sum-total span:last-child { font-family: 'IBM Plex Mono', monospace; }
 .cash-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
 .cash-btn {
-  background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px;
-  padding: 10px 4px; font-size: 14px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
-  cursor: pointer; transition: all 0.1s; color: var(--accent);
+  border: 1.5px solid transparent; border-radius: 10px;
+  padding: 10px 4px; font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  cursor: pointer; transition: all 0.1s;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
 }
-.cash-btn:hover { border-color: var(--accent2); background: #e8f4e8; }
-.cash-btn:active { transform: scale(0.94); background: var(--accent2); color: #fff; }
+.cash-btn .cash-icon { font-size: 15px; line-height: 1; }
+.cash-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.cash-btn:active { transform: scale(0.94); }
 .pay-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
 .pay-label { font-size: 15px; font-weight: 600; color: var(--text2); white-space: nowrap; }
 .pay-input {
@@ -559,11 +576,11 @@ body {
   border: 1.5px solid #fde68a;
   border-radius: 10px;
   padding: 12px 18px;
-  display: flex; justify-content: space-between;
+  display: flex; justify-content: space-between; align-items: center;
   font-weight: 700; font-size: 18px; color: #92400e;
   margin-bottom: 12px;
 }
-.change-row span:last-child { font-family: 'IBM Plex Mono', monospace; }
+.change-row span:last-child { font-family: 'IBM Plex Mono', monospace; font-size: 30px; }
 .btn-pay {
   width: 100%;
   background: var(--accent);
@@ -614,6 +631,14 @@ body {
 .btn-outline:hover { border-color: var(--accent2); color: var(--accent); }
 
 .inv-stats { display: flex; gap: 12px; padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.filter-chips { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.filter-chip {
+  background: var(--surface2); border: 1.5px solid var(--border); border-radius: 20px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text2);
+  transition: all 0.1s; white-space: nowrap;
+}
+.filter-chip:hover { border-color: var(--accent2); }
+.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .stat-card { background: var(--surface2); border-radius: 10px; padding: 12px 16px; flex: 1; }
 .stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; }
 .stat-val { font-size: 22px; font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
@@ -782,7 +807,7 @@ body {
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 /* ===== MANAGER PAGE ===== */
-#page-manager, #page-users, #page-settings { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
+#page-manager, #page-users, #page-settings, #page-manualbc { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
 
 /* ===== SETTINGS PAGE ===== */
 .settings-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
@@ -1055,7 +1080,8 @@ body {
         <span style="font-size:13px">พิมพ์ค้นหา หรือกดเลือกสินค้าด้านซ้าย</span>
       </div>
     </div>
-    <div class="cart-summary">
+    <div class="cart-summary" id="cartSummary">
+      <div class="cart-resizer" id="cartResizer"></div>
       <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
       <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
       <div class="cash-grid" id="cashGrid"></div>
@@ -1083,6 +1109,7 @@ body {
     <div class="stat-card"><div class="stat-label">ใกล้หมด</div><div class="stat-val orange" id="invStatLow">0</div></div>
     <div class="stat-card"><div class="stat-label">หมดแล้ว</div><div class="stat-val red" id="invStatOut">0</div></div>
   </div>
+  <div class="filter-chips" id="invFilterChips"></div>
   <div class="inv-table-wrap">
     <table class="inv-table">
       <thead><tr>
@@ -1106,11 +1133,6 @@ body {
     <input class="inv-search" id="masterSearch" placeholder="🔍 ค้นหาสินค้า Barcode หรือชื่อ..." style="max-width:300px" oninput="renderMaster()">
     <select class="form-input" id="masterCatFilter" style="width:140px; padding:9px 12px" onchange="renderMaster()">
       <option>ทุกหมวดหมู่</option>
-      <option>เครื่องดื่ม</option>
-      <option>ขนม</option>
-      <option>ของใช้</option>
-      <option>อาหาร</option>
-      <option>นม</option>
     </select>
     <select class="form-input" id="masterSort" style="width:170px; padding:9px 12px" onchange="renderMaster()">
       <option value="name-asc">เรียง: ชื่อ ก-ฮ</option>
@@ -1124,6 +1146,7 @@ body {
     <button class="btn btn-outline" data-perm="master_manual_gen" onclick="openBarcodeBook()">🖨️ พิมพ์สมุดบาร์โค้ด</button>
     <button class="btn btn-primary" id="btnAddProductMaster" data-perm="master_edit_price" onclick="showAddProduct()">+ เพิ่มสินค้าใหม่</button>
   </div>
+  <div class="filter-chips" id="masterFilterChips"></div>
   <div class="master-content" id="masterContent"></div>
 </div>
 
@@ -1159,6 +1182,32 @@ body {
         <div class="report-card-title">สินค้าขายดี Top 5</div>
         <div class="top-list" id="topProducts"></div>
       </div>
+    </div>
+    <div class="report-card">
+      <div class="report-card-title">🧾 ประวัติการขาย (บิลล่าสุด) — กดแถวเพื่อดูรายละเอียด</div>
+      <div class="inv-table-wrap" style="padding:0">
+        <table class="inv-table">
+          <thead><tr><th>วันที่/เวลา</th><th>แคชเชียร์</th><th>จำนวนรายการ</th><th>ยอดรวม</th><th>กำไรจริง (FIFO)</th></tr></thead>
+          <tbody id="salesTicketBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Sale Ticket Detail Modal -->
+<div class="modal-overlay" id="ticketModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">🧾 รายละเอียดบิล <span id="ticketId" style="color:var(--text2);font-weight:400;font-size:13px"></span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px" id="ticketMeta"></div>
+    <div class="inv-table-wrap" style="padding:0;max-height:320px">
+      <table class="inv-table">
+        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ราคา/ชิ้น</th><th>ต้นทุน FIFO</th><th>กำไร</th></tr></thead>
+        <tbody id="ticketItemsBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeTicketModal()">ปิด</button>
     </div>
   </div>
 </div>
@@ -1268,6 +1317,28 @@ body {
     <div class="report-card-title">ลำดับเมนูบนแถบด้านบน</div>
     <div style="font-size:13px;color:var(--text2);margin-bottom:10px">กดลูกศรเพื่อเลื่อนเมนูขึ้น/ลง — มีผลกับทุกคนทุกเครื่อง</div>
     <div id="navOrderList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
+<!-- ===== MANUAL BARCODE MANAGEMENT ===== -->
+<div class="page" id="page-manualbc">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">🏷️ จัดการ Manual Barcode</div>
+  <div style="font-size:14px; color:var(--text2)">ดูว่ามี Manual Barcode อะไรบ้าง วิ่งไปถึงเลขไหนแล้ว และแปลงรหัสเก่าให้เป็นรูปแบบ MBxxxx</div>
+
+  <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="kpi-card"><div class="kpi-label">Manual Barcode ทั้งหมด</div><div class="kpi-val" id="mbcTotal">0</div></div>
+    <div class="kpi-card" style="border-top-color:var(--accent3)"><div class="kpi-label">รูปแบบ MBxxxx แล้ว</div><div class="kpi-val" id="mbcConform">0</div></div>
+    <div class="kpi-card" style="border-top-color:var(--blue)"><div class="kpi-label">เลขถัดไปที่จะได้</div><div class="kpi-val" id="mbcNext" style="font-size:22px">MB0001</div></div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-title">รายการ Manual Barcode</div>
+    <div class="inv-table-wrap" style="padding:0">
+      <table class="inv-table">
+        <thead><tr><th style="width:56px"></th><th>รหัส</th><th>ชื่อสินค้า</th><th>สต็อก</th><th>รูปแบบ</th><th></th></tr></thead>
+        <tbody id="mbcTableBody"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1501,12 +1572,13 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
-const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage' };
+const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen' };
 const NAV_ITEMS = [
   { key: 'arch', icon: '🗺️', label: 'Architecture', mobileLabel: 'ระบบ', perm: null },
   { key: 'pos', icon: '🛒', label: 'หน้าขาย (POS)', mobileLabel: 'ขายของ', perm: 'pos_sell' },
   { key: 'inventory', icon: '📦', label: 'คลังสินค้า', mobileLabel: 'คลัง', perm: 'inventory_view' },
   { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
+  { key: 'manualbc', icon: '🏷️', label: 'Manual Barcode', mobileLabel: 'บาร์โค้ด', perm: 'master_manual_gen' },
   { key: 'report', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', perm: 'report_view' },
   { key: 'manager', icon: '📋', label: 'จัดการ', mobileLabel: 'จัดการ', perm: 'manager_view', badge: true },
   { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
@@ -1555,6 +1627,7 @@ function showPage(name, el) {
   if (name === 'manager') renderManager();
   if (name === 'users') renderUsers();
   if (name === 'settings') renderSettingsPage();
+  if (name === 'manualbc') renderManualBarcodePage();
 }
 
 // Hide nav tabs the current user has no permission for, and jump off the
@@ -1584,7 +1657,7 @@ function closeLightbox() { document.getElementById('lightboxOverlay').classList.
 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
 let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER() };
-function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','report','manager','users','settings']; }
+function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','manualbc','report','manager','users','settings']; }
 
 const SETTINGS_CACHE_KEY = 'mm_settings_cache_v1';
 async function loadSettings() {
@@ -1818,7 +1891,7 @@ function addToCart(barcode) {
   if (!p || totalStock(p) === 0) return;
   const existing = cart.find(c => c.barcode === barcode);
   if (existing) { if (existing.qty < totalStock(p)) existing.qty++; }
-  else cart.push({ barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, qty: 1 });
+  else cart.push({ barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
   renderCart();
   showToast(`+ ${p.name}`);
 }
@@ -1828,6 +1901,19 @@ function changeQty(barcode, delta) {
   if (!item) return;
   item.qty += delta;
   if (item.qty <= 0) cart = cart.filter(c => c.barcode !== barcode);
+  renderCart();
+}
+
+// พิมพ์จำนวนตรงๆ ได้เลย เช่นซื้อทีเดียว 30 ชิ้น ไม่ต้องกด +/- ทีละครั้ง
+function setQty(barcode, val) {
+  const item = cart.find(c => c.barcode === barcode);
+  if (!item) return;
+  const p = demoProducts.find(x => x.barcode === barcode);
+  let qty = parseInt(val) || 0;
+  const max = p ? totalStock(p) : qty;
+  if (qty > max) { qty = max; showToast(`⚠️ สต็อกมีแค่ ${max} ชิ้น`); }
+  if (qty <= 0) { cart = cart.filter(c => c.barcode !== barcode); }
+  else { item.qty = qty; }
   renderCart();
 }
 
@@ -1847,11 +1933,11 @@ function renderCart() {
   const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
   el.innerHTML = cart.map(c => `
     <div class="cart-item">
-      <div class="ci-emoji">${c.emoji}</div>
+      <div class="ci-thumb" ${c.imageUrl ? `onclick="openLightbox('${c.imageUrl}')"` : ''}>${c.imageUrl ? `<img src="${c.imageUrl}">` : c.emoji}</div>
       <div class="ci-name">${c.name}<br><span style="font-size:13px;color:var(--text2);font-weight:400">฿${c.price} / ชิ้น</span></div>
       <div class="ci-qty-row">
         <button class="ci-btn" onclick="changeQty('${c.barcode}',-1)">−</button>
-        <span class="ci-qty">${c.qty}</span>
+        <input class="ci-qty-input" type="number" value="${c.qty}" onchange="setQty('${c.barcode}', this.value)" onclick="this.select()">
         <button class="ci-btn" onclick="changeQty('${c.barcode}',1)">+</button>
       </div>
       <div class="ci-price">฿${(c.price*c.qty).toFixed(0)}</div>
@@ -1872,10 +1958,22 @@ function calcChange() {
 
 // ========== CASH DENOMINATION BUTTONS ==========
 // ปกติแม่กดปุ่มธนบัตร/เหรียญบวกเงินเข้า ไม่ต้องพิมพ์เอง — ช่อง payAmount ไว้พิมพ์เองเฉพาะกรณีฉุกเฉิน
-const CASH_DENOMS = [1000, 500, 100, 50, 20, 10, 5, 2, 1];
+const CASH_DENOMS = [
+  { v: 1000, type: 'note', bg: '#8c7a6b', fg: '#fff' },  // แบงค์พันสีเทาน้ำตาล
+  { v: 500,  type: 'note', bg: '#7e4f8c', fg: '#fff' },  // แบงค์ห้าร้อยสีม่วง
+  { v: 100,  type: 'note', bg: '#c0392b', fg: '#fff' },  // แบงค์ร้อยสีแดง
+  { v: 50,   type: 'note', bg: '#2980b9', fg: '#fff' },  // แบงค์ห้าสิบสีฟ้า
+  { v: 20,   type: 'note', bg: '#27ae60', fg: '#fff' },  // แบงค์ยี่สิบสีเขียว
+  { v: 10,   type: 'coin', bg: '#cfc9b8', fg: '#4a4030' },
+  { v: 5,    type: 'coin', bg: '#d8d8d8', fg: '#4a4030' },
+  { v: 2,    type: 'coin', bg: '#d8c38a', fg: '#4a4030' },
+  { v: 1,    type: 'coin', bg: '#d8d8d8', fg: '#4a4030' },
+];
 function renderCashGrid() {
   document.getElementById('cashGrid').innerHTML = CASH_DENOMS.map(d =>
-    `<button class="cash-btn" onclick="addCash(${d})">+${d}</button>`
+    `<button class="cash-btn" style="background:${d.bg};color:${d.fg}" onclick="addCash(${d.v})">
+      <span class="cash-icon">${d.type === 'note' ? '💵' : '🪙'}</span>+${d.v}
+    </button>`
   ).join('');
 }
 function addCash(amount) {
@@ -1916,16 +2014,39 @@ function sortInventory(col) {
   invSort = invSort.col === col ? { col, dir: -invSort.dir } : { col, dir: 1 };
   renderInventory();
 }
+let invFilter = { status: 'all', manual: false };
+function setInvFilter(status) { invFilter.status = status; renderInventory(); }
+function toggleInvManualFilter() { invFilter.manual = !invFilter.manual; renderInventory(); }
+function renderFilterChips(containerId, filter, setStatusFn, toggleManualFn) {
+  const chip = (label, active, onclick) => `<div class="filter-chip ${active?'active':''}" onclick="${onclick}">${label}</div>`;
+  document.getElementById(containerId).innerHTML =
+    chip('ทั้งหมด', filter.status==='all', `${setStatusFn}('all')`) +
+    chip('✅ สต็อกปกติ', filter.status==='ok', `${setStatusFn}('ok')`) +
+    chip('⚠️ ใกล้หมด', filter.status==='low', `${setStatusFn}('low')`) +
+    chip('⛔ หมดแล้ว', filter.status==='out', `${setStatusFn}('out')`) +
+    chip('🏷️ Manual Barcode', filter.manual, `${toggleManualFn}()`);
+}
 function renderInventory() {
   let ok = 0, low = 0, out = 0;
   const q = (document.getElementById('invSearch').value || '').trim().toLowerCase();
   let list = demoProducts.filter(p => !q || p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q));
 
-  // นับสถานะจากสินค้าทั้งหมดที่ตรงกับคำค้นหา (ก่อนเรียงลำดับ) ไม่ใช่ทั้งร้าน เวลาค้นหาแล้วตัวเลขจะตรงกับที่เห็น
+  // นับสถานะจากสินค้าทั้งหมดที่ตรงกับคำค้นหา (ก่อนกรอง status/manual) ไม่ใช่ทั้งร้าน เวลาค้นหาแล้วตัวเลขจะตรงกับที่เห็น
   list.forEach(p => {
     const stock = totalStock(p);
     if (stock === 0) out++; else if (stock <= p.safetyStock) low++; else ok++;
   });
+
+  renderFilterChips('invFilterChips', invFilter, 'setInvFilter', 'toggleInvManualFilter');
+  if (invFilter.manual) list = list.filter(p => p.manualGen);
+  if (invFilter.status !== 'all') {
+    list = list.filter(p => {
+      const stock = totalStock(p);
+      if (invFilter.status === 'out') return stock === 0;
+      if (invFilter.status === 'low') return stock > 0 && stock <= p.safetyStock;
+      return stock > p.safetyStock;
+    });
+  }
 
   if (invSort.col) {
     const getters = {
@@ -2002,7 +2123,20 @@ async function saveReceiveStock() {
 }
 
 // ========== MASTER DATA (ค้นหา / กรองหมวดหมู่ / เรียงลำดับ) ==========
+let masterFilter = { status: 'all', manual: false };
+function setMasterFilter(status) { masterFilter.status = status; renderMaster(); }
+function toggleMasterManualFilter() { masterFilter.manual = !masterFilter.manual; renderMaster(); }
+
+function populateCatFilter() {
+  const sel = document.getElementById('masterCatFilter');
+  const current = sel.value;
+  const cats = [...new Set(demoProducts.map(p => p.cat))].sort((a,b) => a.localeCompare(b, 'th'));
+  sel.innerHTML = '<option>ทุกหมวดหมู่</option>' + cats.map(c => `<option>${c}</option>`).join('');
+  if (cats.includes(current)) sel.value = current;
+}
+
 function renderMaster() {
+  populateCatFilter();
   const q = (document.getElementById('masterSearch').value || '').trim().toLowerCase();
   const cat = document.getElementById('masterCatFilter').value;
   const sort = document.getElementById('masterSort').value;
@@ -2011,6 +2145,17 @@ function renderMaster() {
     (!q || p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q)) &&
     (cat === 'ทุกหมวดหมู่' || p.cat === cat)
   );
+
+  renderFilterChips('masterFilterChips', masterFilter, 'setMasterFilter', 'toggleMasterManualFilter');
+  if (masterFilter.manual) list = list.filter(p => p.manualGen);
+  if (masterFilter.status !== 'all') {
+    list = list.filter(p => {
+      const stock = totalStock(p);
+      if (masterFilter.status === 'out') return stock === 0;
+      if (masterFilter.status === 'low') return stock > 0 && stock <= p.safetyStock;
+      return stock > p.safetyStock;
+    });
+  }
 
   const sorters = {
     'name-asc': (a,b) => a.name.localeCompare(b.name, 'th'),
@@ -2091,7 +2236,55 @@ async function renderReport() {
       <div class="top-qty">${t.qty} ชิ้น</div>
       <div class="top-amt">฿${t.amt.toFixed(0)}</div>
     </div>`).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายวันนี้</div>`;
+
+  renderSalesTickets();
 }
+
+// ========== SALE TICKETS (ประวัติการขายแบบบิล พร้อมรายละเอียด FIFO cost ต่อชิ้น) ==========
+async function renderSalesTickets() {
+  const { data: tickets } = await sb.from('sales')
+    .select('id, total, profit, sold_at, sold_by, profiles(display_name)')
+    .order('sold_at', { ascending: false }).limit(50);
+  document.getElementById('salesTicketBody').innerHTML = (tickets && tickets.length) ? tickets.map(t => `
+    <tr style="cursor:pointer" onclick="openTicketDetail('${t.id}')">
+      <td style="font-size:12px">${new Date(t.sold_at).toLocaleString('th-TH')}</td>
+      <td>${t.profiles ? t.profiles.display_name : '—'}</td>
+      <td id="ticketCount-${t.id}">…</td>
+      <td>฿${Number(t.total).toFixed(2)}</td>
+      <td style="color:var(--accent);font-weight:700">฿${Number(t.profit).toFixed(2)}</td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:16px">— ยังไม่มีการขาย —</td></tr>`;
+
+  // เติมจำนวนรายการต่อบิลทีหลัง (query เดียวรวมทุกบิลที่โชว์ แทนที่จะยิงทีละบิล)
+  if (tickets && tickets.length) {
+    const ids = tickets.map(t => t.id);
+    const { data: items } = await sb.from('sale_items').select('sale_id').in('sale_id', ids);
+    const counts = {};
+    (items || []).forEach(it => { counts[it.sale_id] = (counts[it.sale_id]||0) + 1; });
+    ids.forEach(id => { const el = document.getElementById(`ticketCount-${id}`); if (el) el.textContent = (counts[id]||0) + ' รายการ'; });
+  }
+}
+
+async function openTicketDetail(saleId) {
+  const { data: sale } = await sb.from('sales').select('*, profiles(display_name)').eq('id', saleId).single();
+  const { data: items } = await sb.from('sale_items').select('*').eq('sale_id', saleId);
+  if (!sale) return;
+  document.getElementById('ticketId').textContent = '#' + saleId.slice(0,8);
+  document.getElementById('ticketMeta').textContent =
+    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.profiles ? sale.profiles.display_name : '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
+  document.getElementById('ticketItemsBody').innerHTML = (items||[]).map(it => `
+    <tr>
+      <td>${it.name}</td>
+      <td>${it.qty}</td>
+      <td>฿${Number(it.price).toFixed(2)}</td>
+      <td style="color:var(--text2)">฿${Number(it.cost).toFixed(2)}</td>
+      <td style="color:var(--accent);font-weight:700">฿${(it.price*it.qty - Number(it.cost)).toFixed(2)}</td>
+    </tr>`).join('') + `
+    <tr style="font-weight:700;background:var(--surface2)">
+      <td colspan="2">รวม</td><td>฿${Number(sale.total).toFixed(2)}</td><td>฿${Number(sale.total_cost).toFixed(2)}</td><td style="color:var(--accent)">฿${Number(sale.profit).toFixed(2)}</td>
+    </tr>`;
+  document.getElementById('ticketModal').classList.add('open');
+}
+function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
 
 // ========== ADD / EDIT PRODUCT MODAL ==========
 let editingBarcode = null;
@@ -2163,15 +2356,60 @@ function closeModal() {
 }
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
+document.getElementById('ticketModal').addEventListener('click', function(e) { if(e.target===this) closeTicketModal(); });
 
 // ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
+// รหัส Manual Barcode วิ่งต่อเนื่อง MB0001, MB0002, ... — หาเลขถัดไปจากตัวที่มีอยู่จริง
+// ไม่สุ่ม เพื่อให้เปิดสมุดบาร์โค้ดแล้วไล่เลขง่าย และรู้ว่าวิ่งไปถึงไหนแล้ว
+function nextManualBarcode() {
+  let max = 0;
+  demoProducts.forEach(p => {
+    const m = /^MB(\d+)$/.exec(p.barcode);
+    if (m) max = Math.max(max, parseInt(m[1]));
+  });
+  return 'MB' + String(max + 1).padStart(4, '0');
+}
 function genLocalBarcode() {
-  let code;
-  do { code = 'LC' + Date.now().toString(36).toUpperCase() + Math.floor(Math.random()*36).toString(36).toUpperCase(); }
-  while (demoProducts.some(p => p.barcode === code));
+  const code = nextManualBarcode();
   document.getElementById('newBarcode').value = code;
   pendingManualGen = true;
-  showToast('🏷️ สร้างรหัสบาร์โค้ดภายในร้านแล้ว — บันทึกสินค้าแล้วพิมพ์จาก "สมุดบาร์โค้ด" ได้เลย');
+  showToast(`🏷️ สร้างรหัส ${code} แล้ว — บันทึกสินค้าแล้วพิมพ์จาก "สมุดบาร์โค้ด" ได้เลย`);
+}
+
+// ========== MANUAL BARCODE MANAGEMENT ==========
+function renderManualBarcodePage() {
+  const list = demoProducts.filter(p => p.manualGen).sort((a,b) => a.barcode.localeCompare(b.barcode, 'th'));
+  const conform = list.filter(p => /^MB\d+$/.test(p.barcode));
+  document.getElementById('mbcTotal').textContent = list.length;
+  document.getElementById('mbcConform').textContent = conform.length;
+  document.getElementById('mbcNext').textContent = nextManualBarcode();
+
+  document.getElementById('mbcTableBody').innerHTML = list.length ? list.map(p => {
+    const stock = totalStock(p);
+    const isConform = /^MB\d+$/.test(p.barcode);
+    return `<tr>
+      <td><div class="thumb-cell" ${p.imageUrl ? `onclick="openLightbox('${p.imageUrl}')"` : ''}>${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div></td>
+      <td class="barcode-mono"><strong>${p.barcode}</strong></td>
+      <td>${p.name}</td>
+      <td>${stock}</td>
+      <td>${isConform
+        ? '<span class="stock-badge badge-ok">✅ MBxxxx</span>'
+        : '<span class="stock-badge badge-low">⚠️ รูปแบบเก่า</span>'}</td>
+      <td>${isConform ? '' : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="migrateToSequentialBarcode('${p.barcode}')">แปลงเป็น ${nextManualBarcode()}</button>`}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีสินค้า Manual Barcode</td></tr>`;
+}
+
+async function migrateToSequentialBarcode(oldBarcode) {
+  if (!can('master_manual_gen')) { showToast('⚠️ ไม่มีสิทธิ์'); return; }
+  const newBarcode = nextManualBarcode();
+  // ปลอดภัยเพราะ FK ทุกตัว (lots/sale_items/price_changes/snoozes) ตั้ง ON UPDATE CASCADE ไว้แล้ว
+  // ประวัติการขาย/ต้นทุนเดิมของสินค้านี้จะตามรหัสใหม่ไปด้วย ไม่หลุดหาย
+  const { error } = await sb.from('products').update({ barcode: newBarcode }).eq('barcode', oldBarcode);
+  if (error) { showToast('⚠️ เปลี่ยนรหัสไม่สำเร็จ: ' + error.message); return; }
+  showToast(`✅ เปลี่ยน ${oldBarcode} เป็น ${newBarcode} แล้ว`);
+  await loadProducts();
+  renderManualBarcodePage();
 }
 
 // ========== BARCODE BOOK (พิมพ์เฉพาะสินค้าที่ Manual Gen — ของมี barcode โรงงานอยู่แล้วไม่ต้องพิมพ์) ==========
@@ -2477,6 +2715,35 @@ async function createStaffUser() {
     dragging = false;
     handle.classList.remove('dragging');
     try { localStorage.setItem('mm_pos_left_width', parseInt(left.style.width)); } catch (e) {}
+  });
+})();
+
+// ========== CART / PAYMENT PANEL RESIZER (ปรับสัดส่วนตะกร้า vs ส่วนจ่ายเงิน) ==========
+(function setupCartResizer() {
+  const summary = document.getElementById('cartSummary');
+  const handle = document.getElementById('cartResizer');
+  const saved = parseInt(localStorage.getItem('mm_cart_summary_height')) || null;
+  if (saved) summary.style.height = saved + 'px';
+
+  let dragging = false, startY = 0, startHeight = 0;
+  function onMove(clientY) {
+    const maxH = summary.parentElement.getBoundingClientRect().height * 0.8;
+    const h = Math.min(Math.max(startHeight - (clientY - startY), 160), maxH);
+    summary.style.height = h + 'px';
+  }
+  handle.addEventListener('pointerdown', e => {
+    dragging = true;
+    startY = e.clientY;
+    startHeight = summary.getBoundingClientRect().height;
+    handle.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e => { if (dragging) onMove(e.clientY); });
+  handle.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    try { localStorage.setItem('mm_cart_summary_height', parseInt(summary.style.height)); } catch (e) {}
   });
 })();
 
