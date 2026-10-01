@@ -47,7 +47,8 @@ body {
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-.nav-logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; margin-right: 8px; }
+.nav-logo { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; margin-right: 8px; display: flex; align-items: center; gap: 8px; }
+.nav-logo img { height: 28px; width: 28px; object-fit: cover; border-radius: 6px; }
 .nav-logo span { color: var(--accent3); }
 .nav-tabs { display: flex; gap: 2px; flex: 1; }
 .nav-tab {
@@ -338,13 +339,22 @@ body {
 /* LEFT — Search + Keypad (collapsible) + Product Grid */
 .pos-left {
   width: 420px;
+  min-width: 260px;
+  max-width: 70vw;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   border-right: 1px solid var(--border);
   overflow: hidden;
+  position: relative;
 }
+.pos-resizer {
+  position: absolute; top: 0; right: -4px; bottom: 0; width: 9px;
+  cursor: col-resize; z-index: 5; touch-action: none;
+}
+.pos-resizer::after { content:''; position:absolute; top:0; bottom:0; left:3px; width:3px; background:var(--border); border-radius:2px; }
+.pos-resizer:hover::after, .pos-resizer.dragging::after { background: var(--accent2); }
 
 /* Search bar */
 .pos-search {
@@ -440,10 +450,11 @@ body {
 .product-card:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card:active { transform: scale(0.96); }
 .product-card.out-of-stock { opacity: 0.38; pointer-events: none; }
-.pc-img { font-size: 26px; margin-bottom: 5px; height: 34px; display: flex; align-items: center; justify-content: center; }
-.pc-name { font-size: 11px; font-weight: 600; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
-.pc-price { font-size: 13px; font-weight: 700; color: var(--accent); }
-.pc-stock { font-size: 10px; color: var(--text2); margin-top: 2px; }
+.pc-img { font-size: 34px; margin-bottom: 5px; height: 52px; display: flex; align-items: center; justify-content: center; }
+.pc-img img { width: 100%; height: 100%; object-fit: cover; border-radius: 8px; }
+.pc-name { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
+.pc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
+.pc-stock { font-size: 11.5px; color: var(--text2); margin-top: 2px; }
 .pc-stock.low { color: var(--red); font-weight: 600; }
 
 /* RIGHT — Cart (big, สบายตา) */
@@ -634,7 +645,7 @@ body {
   border-bottom: 1px solid var(--border);
   display: flex; gap: 10px; align-items: center;
 }
-.master-content { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; align-content: start; }
+.master-content { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; align-content: start; }
 .master-card {
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -644,15 +655,32 @@ body {
   cursor: pointer;
 }
 .master-card:hover { border-color: var(--accent2); box-shadow: var(--shadow); transform: translateY(-2px); }
-.mc-img { height: 120px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 48px; position: relative; }
-.mc-badge { position: absolute; top: 8px; right: 8px; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
-.mc-body { padding: 12px 14px; }
-.mc-name { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-.mc-barcode { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: var(--text2); margin-bottom: 8px; }
+.mc-img { height: 140px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 52px; position: relative; }
+.mc-img img { width: 100%; height: 100%; object-fit: cover; cursor: zoom-in; }
+.mc-badge { position: absolute; top: 8px; right: 8px; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+.mc-body { padding: 14px 16px; }
+.mc-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; line-height: 1.35; }
+.mc-barcode { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: var(--text2); margin-bottom: 10px; }
 .mc-footer { display: flex; justify-content: space-between; align-items: center; }
-.mc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
-.mc-cat { font-size: 11px; background: var(--surface2); padding: 3px 8px; border-radius: 20px; color: var(--text2); }
-.manual-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+.mc-price { font-size: 18px; font-weight: 700; color: var(--accent); }
+.mc-cat { font-size: 12px; background: var(--surface2); padding: 3px 9px; border-radius: 20px; color: var(--text2); }
+.manual-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; background: #fff3e0; color: #e65100; padding: 2px 9px; border-radius: 20px; margin-top: 8px; }
+
+/* ===== IMAGE LIGHTBOX (คลิกรูปเพื่อขยาย — ไม่ใช้ในหน้า POS) ===== */
+.lightbox-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 350; align-items: center; justify-content: center; padding: 24px; }
+.lightbox-overlay.open { display: flex; }
+.lightbox-overlay img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+.lightbox-close { position: absolute; top: 20px; right: 24px; color: #fff; font-size: 28px; cursor: pointer; background: none; border: none; }
+
+/* ===== THUMBNAIL (รูปสินค้าเล็กๆ ใน Inventory) ===== */
+.thumb-cell { width: 44px; height: 44px; border-radius: 8px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; cursor: zoom-in; flex-shrink: 0; }
+.thumb-cell img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ===== SORTABLE TABLE HEADER ===== */
+.inv-table th.sortable { cursor: pointer; user-select: none; }
+.inv-table th.sortable:hover { color: var(--accent); }
+.inv-table th.sortable .sort-arrow { margin-left: 4px; opacity: 0.4; }
+.inv-table th.sortable.active .sort-arrow { opacity: 1; color: var(--accent); }
 
 /* Add product modal */
 .modal-overlay {
@@ -743,7 +771,18 @@ body {
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 /* ===== MANAGER PAGE ===== */
-#page-manager, #page-users { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
+#page-manager, #page-users, #page-settings { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
+
+/* ===== SETTINGS PAGE ===== */
+.settings-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.upload-thumb { width: 56px; height: 56px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; flex-shrink: 0; }
+.upload-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.navorder-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 10px; }
+.navorder-row .nr-label { flex: 1; font-weight: 600; font-size: 14px; }
+.nr-btn { width: 32px; height: 32px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; font-size: 14px; display:flex; align-items:center; justify-content:center; }
+.nr-btn:hover { border-color: var(--accent2); }
+.nr-btn:disabled { opacity: 0.3; cursor: default; }
 .alert-badge { background: var(--red); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
 .alert-row { display: flex; align-items: center; gap: 14px; background: var(--surface2); border-radius: 12px; padding: 12px 16px; }
 .alert-row.snoozed { opacity: 0.65; }
@@ -787,16 +826,8 @@ body {
 
 <!-- Top Nav -->
 <nav class="topnav">
-  <div class="nav-logo">🏪 Mini<span>Mart</span></div>
-  <div class="nav-tabs">
-    <button class="nav-tab" onclick="showPage('arch',this)">🗺️ Architecture</button>
-    <button class="nav-tab active" data-perm="pos_sell" onclick="showPage('pos',this)">🛒 หน้าขาย (POS)</button>
-    <button class="nav-tab" data-perm="inventory_view" onclick="showPage('inventory',this)">📦 คลังสินค้า</button>
-    <button class="nav-tab" data-perm="master_view" onclick="showPage('master',this)">🗂️ Master Data</button>
-    <button class="nav-tab" data-perm="report_view" onclick="showPage('report',this)">📊 รายงาน</button>
-    <button class="nav-tab" data-perm="manager_view" onclick="showPage('manager',this)">📋 จัดการ<span class="alert-badge" id="navAlertBadge" style="display:none"></span></button>
-    <button class="nav-tab" data-perm="users_manage" onclick="showPage('users',this)">👥 ผู้ใช้งาน</button>
-  </div>
+  <div class="nav-logo" id="navLogo">🏪 Mini<span>Mart</span></div>
+  <div class="nav-tabs" id="navTabs"></div>
   <div class="nav-right">
     <span class="role-chip" id="navRoleChip">—</span>
     <span id="navUserName">—</span>
@@ -807,21 +838,19 @@ body {
 
 <!-- Mobile bottom nav -->
 <nav class="bottom-nav">
-  <div class="bottom-nav-tabs">
-    <button class="bottom-tab" data-perm="pos_sell" onclick="showPage('pos',this)"><span class="tab-icon">🛒</span>ขายของ</button>
-    <button class="bottom-tab" data-perm="inventory_view" onclick="showPage('inventory',this)"><span class="tab-icon">📦</span>คลัง</button>
-    <button class="bottom-tab" data-perm="master_view" onclick="showPage('master',this)"><span class="tab-icon">🗂️</span>สินค้า</button>
-    <button class="bottom-tab" data-perm="report_view" onclick="showPage('report',this)"><span class="tab-icon">📊</span>รายงาน</button>
-    <button class="bottom-tab" data-perm="manager_view" onclick="showPage('manager',this)"><span class="tab-icon">📋</span>จัดการ<span class="alert-badge" id="navAlertBadgeMobile" style="display:none"></span></button>
-    <button class="bottom-tab" data-perm="users_manage" onclick="showPage('users',this)"><span class="tab-icon">👥</span>ผู้ใช้</button>
-    <button class="bottom-tab" onclick="showPage('arch',this)"><span class="tab-icon">🗺️</span>ระบบ</button>
-  </div>
+  <div class="bottom-nav-tabs" id="bottomNavTabs"></div>
 </nav>
+
+<!-- Image lightbox (ดูรูปขยาย — ไม่ใช้ในหน้า POS) -->
+<div class="lightbox-overlay" id="lightboxOverlay" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightboxImg" src="" onclick="event.stopPropagation()">
+</div>
 
 <!-- Auth overlay: login, or first-run admin bootstrap -->
 <div class="auth-overlay" id="authOverlay">
   <div class="auth-card">
-    <div class="auth-logo">🏪 Mini<span>Mart</span> POS</div>
+    <div class="auth-logo" id="authLogo">🏪 Mini<span>Mart</span> POS</div>
     <div id="authBootstrapForm" style="display:none">
       <div class="auth-title">ตั้งค่าครั้งแรก — สร้างบัญชี Admin</div>
       <div class="auth-sub">ยังไม่มีผู้ใช้งานในระบบ คนแรกที่สมัครจะได้สิทธิ์ Admins โดยอัตโนมัติ</div>
@@ -966,7 +995,8 @@ body {
 <div class="page active" id="page-pos">
 
   <!-- LEFT: Search + Keypad + Product Grid -->
-  <div class="pos-left">
+  <div class="pos-left" id="posLeft">
+    <div class="pos-resizer" id="posResizer"></div>
 
     <!-- Search bar -->
     <div class="pos-search">
@@ -1032,7 +1062,7 @@ body {
 <!-- ===== INVENTORY PAGE ===== -->
 <div class="page" id="page-inventory">
   <div class="inv-toolbar">
-    <input class="inv-search" placeholder="🔍 ค้นหาสินค้า...">
+    <input class="inv-search" id="invSearch" placeholder="🔍 ค้นหาสินค้า..." oninput="renderInventory()">
     <button class="btn btn-outline" id="btnReceiveStock" data-perm="inventory_receive" onclick="showReceiveModal()">📥 รับของเข้าสต็อก</button>
     <button class="btn btn-primary" id="btnAddProductInv" data-perm="inventory_edit_product" onclick="showAddProduct()">+ เพิ่มสินค้า</button>
   </div>
@@ -1045,8 +1075,14 @@ body {
   <div class="inv-table-wrap">
     <table class="inv-table">
       <thead><tr>
-        <th>Barcode</th><th>ชื่อสินค้า</th><th>หมวดหมู่</th>
-        <th>ราคาขาย</th><th>ต้นทุน</th><th>สต็อก</th><th>สถานะ</th><th></th>
+        <th style="width:56px"></th>
+        <th class="sortable" data-col="barcode" onclick="sortInventory('barcode')">Barcode <span class="sort-arrow">⇅</span></th>
+        <th class="sortable" data-col="name" onclick="sortInventory('name')">ชื่อสินค้า <span class="sort-arrow">⇅</span></th>
+        <th class="sortable" data-col="cat" onclick="sortInventory('cat')">หมวดหมู่ <span class="sort-arrow">⇅</span></th>
+        <th class="sortable" data-col="price" onclick="sortInventory('price')">ราคาขาย <span class="sort-arrow">⇅</span></th>
+        <th class="sortable" data-col="cost" onclick="sortInventory('cost')">ต้นทุน <span class="sort-arrow">⇅</span></th>
+        <th class="sortable" data-col="stock" onclick="sortInventory('stock')">สต็อก <span class="sort-arrow">⇅</span></th>
+        <th>สถานะ</th><th></th>
       </tr></thead>
       <tbody id="invTableBody"></tbody>
     </table>
@@ -1178,6 +1214,52 @@ body {
   </div>
 </div>
 
+<!-- ===== SETTINGS (Admins เท่านั้น) ===== -->
+<div class="page" id="page-settings">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">⚙️ ตั้งค่าระบบ</div>
+  <div style="font-size:14px; color:var(--text2)">ชื่อร้าน โลโก้ สีแถบบน และลำดับเมนู — ใช้ร่วมกันทุกเครื่อง</div>
+
+  <div class="report-card">
+    <div class="report-card-title">แบรนด์ร้าน</div>
+    <div class="settings-row">
+      <div class="upload-thumb" id="logoPreview">🏪</div>
+      <div style="flex:1">
+        <label class="form-label">ชื่อร้าน</label>
+        <input class="form-input" id="stShopName" placeholder="เช่น เหมืองทอง มินิมาร์ท (Mueang Thong Minimart)">
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="upload-thumb" id="logoPreview2">🖼️</div>
+      <div style="flex:1">
+        <label class="form-label">โลโก้ (แสดงมุมซ้ายบน)</label>
+        <input type="file" accept="image/*" class="form-input" id="stLogoFile" style="padding:7px" onchange="uploadBrandImage(this,'logo')">
+      </div>
+    </div>
+    <div class="settings-row">
+      <div class="upload-thumb" id="faviconPreview">🔖</div>
+      <div style="flex:1">
+        <label class="form-label">Icon แท็บเว็บ (Favicon)</label>
+        <input type="file" accept="image/*" class="form-input" id="stFaviconFile" style="padding:7px" onchange="uploadBrandImage(this,'favicon')">
+      </div>
+    </div>
+    <div class="settings-row">
+      <div style="width:56px;text-align:center"><input type="color" id="stTopbarColor" style="width:48px;height:40px;border:none;cursor:pointer;background:none"></div>
+      <div style="flex:1">
+        <label class="form-label">สีแถบด้านบน</label>
+        <div style="font-size:12px;color:var(--text2)">เปลี่ยนสีหลักของทั้งแอป ไม่ใช่แค่แถบบน</div>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:14px" onclick="saveShopSettings()">💾 บันทึกแบรนด์ร้าน</button>
+    <div class="auth-err" id="stErr"></div>
+  </div>
+
+  <div class="report-card">
+    <div class="report-card-title">ลำดับเมนูบนแถบด้านบน</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">กดลูกศรเพื่อเลื่อนเมนูขึ้น/ลง — มีผลกับทุกคนทุกเครื่อง</div>
+    <div id="navOrderList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+</div>
+
 </div><!-- /pages -->
 </div><!-- /app -->
 
@@ -1225,7 +1307,10 @@ body {
     </div>
     <div class="form-group" id="newImageRow">
       <label class="form-label">รูปสินค้า</label>
-      <input type="file" accept="image/*" class="form-input" style="padding:7px">
+      <div style="display:flex; align-items:center; gap:12px">
+        <div class="upload-thumb" id="newImagePreview" style="width:64px;height:64px;font-size:24px">📦</div>
+        <input type="file" accept="image/*" class="form-input" id="newImageFile" style="padding:7px" onchange="handleProductImageChange(this)">
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveNewProduct()">💾 บันทึก</button>
@@ -1303,7 +1388,7 @@ async function loadProducts() {
   demoProducts = (products || []).map(p => ({
     barcode: p.barcode, name: p.name, brand: p.brand, cat: p.cat,
     price: Number(p.price), emoji: p.emoji, safetyStock: p.safety_stock,
-    manualGen: p.manual_gen, lots: lotsByBarcode[p.barcode] || [],
+    manualGen: p.manual_gen, imageUrl: p.image_url, lots: lotsByBarcode[p.barcode] || [],
   }));
 }
 
@@ -1405,9 +1490,44 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
-const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage' };
+const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage' };
+const NAV_ITEMS = [
+  { key: 'arch', icon: '🗺️', label: 'Architecture', mobileLabel: 'ระบบ', perm: null },
+  { key: 'pos', icon: '🛒', label: 'หน้าขาย (POS)', mobileLabel: 'ขายของ', perm: 'pos_sell' },
+  { key: 'inventory', icon: '📦', label: 'คลังสินค้า', mobileLabel: 'คลัง', perm: 'inventory_view' },
+  { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
+  { key: 'report', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', perm: 'report_view' },
+  { key: 'manager', icon: '📋', label: 'จัดการ', mobileLabel: 'จัดการ', perm: 'manager_view', badge: true },
+  { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
+  { key: 'settings', icon: '⚙️', label: 'ตั้งค่าระบบ', mobileLabel: 'ตั้งค่า', perm: 'settings_manage' },
+];
+function navOrderedItems() {
+  const order = (appSettings.nav_order || []).filter(k => NAV_ITEMS.some(n => n.key === k));
+  const missing = NAV_ITEMS.map(n => n.key).filter(k => !order.includes(k));
+  return [...order, ...missing].map(k => NAV_ITEMS.find(n => n.key === k));
+}
+let currentPage = 'pos'; // tracked explicitly instead of read back from the DOM, since the nav
+                          // buttons get fully rebuilt (and lose their 'active' class) whenever
+                          // settings/nav order change — querying the DOM for "the active tab"
+                          // after a rebuild was silently kicking the user back to another page.
+function renderNavTabs() {
+  const items = navOrderedItems();
+  document.getElementById('navTabs').innerHTML = items.map(n => `
+    <button class="nav-tab" ${n.perm ? `data-perm="${n.perm}"` : ''} onclick="showPage('${n.key}',this)">${n.icon} ${n.label}${n.badge ? '<span class="alert-badge" id="navAlertBadge" style="display:none"></span>' : ''}</button>
+  `).join('');
+  document.getElementById('bottomNavTabs').innerHTML = items.map(n => `
+    <button class="bottom-tab" ${n.perm ? `data-perm="${n.perm}"` : ''} onclick="showPage('${n.key}',this)"><span class="tab-icon">${n.icon}</span>${n.mobileLabel}${n.badge ? '<span class="alert-badge" id="navAlertBadgeMobile" style="display:none"></span>' : ''}</button>
+  `).join('');
+  // restore which tab looks active after the rebuild — doesn't change the page itself
+  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${currentPage}'`)) t.classList.add('active');
+  });
+  applyPermissionsToNav();
+}
+
 function showPage(name, el) {
   if (PAGE_PERMS[name] && !can(PAGE_PERMS[name])) { showToast('⚠️ ไม่มีสิทธิ์เข้าหน้านี้'); return; }
+  currentPage = name;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
@@ -1417,25 +1537,127 @@ function showPage(name, el) {
   document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
     if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${name}'`)) t.classList.add('active');
   });
+  if (name === 'pos') setTimeout(() => document.getElementById('posSearch').focus(), 0);
   if (name === 'inventory') renderInventory();
   if (name === 'master') renderMaster();
   if (name === 'report') renderReport();
   if (name === 'manager') renderManager();
   if (name === 'users') renderUsers();
+  if (name === 'settings') renderSettingsPage();
 }
 
 // Hide nav tabs the current user has no permission for, and jump off the
-// POS tab (the default active one) if they can't even sell.
+// current page if they turn out not to have access to it (e.g. role changed).
+// Before login (profile is still null) we only hide/show — we never redirect,
+// since permissions aren't known yet and everything would look disallowed.
 function applyPermissionsToNav() {
   document.querySelectorAll('[data-perm]').forEach(el => {
     const key = el.getAttribute('data-perm');
     el.classList.toggle('perm-hidden', !can(key));
   });
-  const activeTab = document.querySelector('.nav-tab.active[data-perm]');
-  if (activeTab && !can(activeTab.getAttribute('data-perm'))) {
+  if (!profile) return;
+  const requiredPerm = PAGE_PERMS[currentPage];
+  if (requiredPerm && !can(requiredPerm)) {
     const firstAllowed = [...document.querySelectorAll('.nav-tab[data-perm]')].find(t => can(t.getAttribute('data-perm')));
     if (firstAllowed) firstAllowed.click(); else showPage('arch');
   }
+}
+
+// ========== IMAGE LIGHTBOX ==========
+function openLightbox(url) {
+  if (!url) return;
+  document.getElementById('lightboxImg').src = url;
+  document.getElementById('lightboxOverlay').classList.add('open');
+}
+function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
+
+// ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
+let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER() };
+function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','report','manager','users','settings']; }
+
+const SETTINGS_CACHE_KEY = 'mm_settings_cache_v1';
+async function loadSettings() {
+  try {
+    const { data, error } = await withTimeout(sb.from('app_settings').select('*').eq('id', true).single(), 4000);
+    if (error) throw error;
+    if (data) { appSettings = data; try { localStorage.setItem(SETTINGS_CACHE_KEY, JSON.stringify(data)); } catch (e) {} }
+  } catch (e) {
+    // ออฟไลน์ตอนเปิดแอปครั้งแรก — ใช้ค่าแบรนด์ที่จำไว้ล่าสุดแทน ไม่ปล่อยให้แอปค้างรอเน็ต
+    try { const raw = localStorage.getItem(SETTINGS_CACHE_KEY); if (raw) appSettings = JSON.parse(raw); } catch (e2) {}
+  }
+  applyBranding();
+}
+function applyBranding() {
+  document.documentElement.style.setProperty('--accent', appSettings.topbar_color || '#2d5016');
+  const logoHtml = appSettings.logo_url
+    ? `<img src="${appSettings.logo_url}">${appSettings.shop_name || 'MiniMart'}`
+    : `🏪 ${appSettings.shop_name || 'MiniMart'}`;
+  document.getElementById('navLogo').innerHTML = logoHtml;
+  const authLogo = document.getElementById('authLogo');
+  if (authLogo) authLogo.innerHTML = logoHtml;
+  if (appSettings.favicon_url) {
+    let link = document.querySelector('link[rel="icon"]');
+    if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+    link.href = appSettings.favicon_url;
+  }
+  renderNavTabs();
+}
+
+async function uploadBrandImage(inputEl, kind) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop();
+  const path = `branding/${kind}-${Date.now()}.${ext}`;
+  const { error: upErr } = await sb.storage.from('public-assets').upload(path, file, { upsert: true });
+  if (upErr) { showToast('⚠️ อัปโหลดไม่สำเร็จ: ' + upErr.message); return; }
+  const { data: { publicUrl } } = sb.storage.from('public-assets').getPublicUrl(path);
+  const field = kind === 'logo' ? 'logo_url' : 'favicon_url';
+  const { error: updErr } = await sb.from('app_settings').update({ [field]: publicUrl, updated_by: session.user.id }).eq('id', true);
+  if (updErr) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + updErr.message); return; }
+  showToast('✅ อัปโหลดสำเร็จ');
+  await loadSettings();
+  renderSettingsPage();
+}
+
+async function saveShopSettings() {
+  const shop_name = document.getElementById('stShopName').value.trim() || 'MiniMart';
+  const topbar_color = document.getElementById('stTopbarColor').value;
+  const { error } = await sb.from('app_settings').update({ shop_name, topbar_color, updated_by: session.user.id }).eq('id', true);
+  if (error) { document.getElementById('stErr').textContent = error.message; return; }
+  document.getElementById('stErr').textContent = '';
+  showToast('✅ บันทึกแบรนด์ร้านแล้ว');
+  await loadSettings();
+}
+
+async function moveNavItem(key, dir) {
+  const order = navOrderedItems().map(n => n.key);
+  const i = order.indexOf(key);
+  const j = i + dir;
+  if (j < 0 || j >= order.length) return;
+  [order[i], order[j]] = [order[j], order[i]];
+  const { error } = await sb.from('app_settings').update({ nav_order: order, updated_by: session.user.id }).eq('id', true);
+  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
+  await loadSettings();
+  renderSettingsPage();
+}
+
+function renderSettingsPage() {
+  document.getElementById('stShopName').value = appSettings.shop_name || '';
+  document.getElementById('stTopbarColor').value = appSettings.topbar_color || '#2d5016';
+  const logoPrev = document.getElementById('logoPreview');
+  const logoPrev2 = document.getElementById('logoPreview2');
+  logoPrev.innerHTML = appSettings.logo_url ? `<img src="${appSettings.logo_url}">` : '🏪';
+  logoPrev2.innerHTML = appSettings.logo_url ? `<img src="${appSettings.logo_url}">` : '🖼️';
+  document.getElementById('faviconPreview').innerHTML = appSettings.favicon_url ? `<img src="${appSettings.favicon_url}">` : '🔖';
+
+  const items = navOrderedItems();
+  document.getElementById('navOrderList').innerHTML = items.map((n,i) => `
+    <div class="navorder-row">
+      <span style="font-size:18px">${n.icon}</span>
+      <span class="nr-label">${n.label}</span>
+      <button class="nr-btn" ${i===0?'disabled':''} onclick="moveNavItem('${n.key}',-1)">↑</button>
+      <button class="nr-btn" ${i===items.length-1?'disabled':''} onclick="moveNavItem('${n.key}',1)">↓</button>
+    </div>`).join('');
 }
 
 // ========== CAMERA SCANNER ==========
@@ -1565,7 +1787,7 @@ function renderProducts(list) {
     const stock = totalStock(p);
     return `
     <div class="product-card ${stock===0?'out-of-stock':''}" onclick="addToCart('${p.barcode}')">
-      <div class="pc-img">${p.emoji}</div>
+      <div class="pc-img">${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div>
       <div class="pc-name">${p.name}</div>
       <div class="pc-price">฿${p.price}</div>
       <div class="pc-stock ${stock<=p.safetyStock&&stock>0?'low':''}">${stock===0?'หมดแล้ว':stock<=p.safetyStock?`⚠️ เหลือ ${stock}`:`${stock} ชิ้น`}</div>
@@ -1678,16 +1900,48 @@ async function processSale() {
 }
 
 // ========== INVENTORY ==========
+let invSort = { col: null, dir: 1 };
+function sortInventory(col) {
+  invSort = invSort.col === col ? { col, dir: -invSort.dir } : { col, dir: 1 };
+  renderInventory();
+}
 function renderInventory() {
   let ok = 0, low = 0, out = 0;
-  document.getElementById('invTableBody').innerHTML = demoProducts.map(p => {
+  const q = (document.getElementById('invSearch').value || '').trim().toLowerCase();
+  let list = demoProducts.filter(p => !q || p.name.toLowerCase().includes(q) || p.barcode.toLowerCase().includes(q));
+
+  // นับสถานะจากสินค้าทั้งหมดที่ตรงกับคำค้นหา (ก่อนเรียงลำดับ) ไม่ใช่ทั้งร้าน เวลาค้นหาแล้วตัวเลขจะตรงกับที่เห็น
+  list.forEach(p => {
+    const stock = totalStock(p);
+    if (stock === 0) out++; else if (stock <= p.safetyStock) low++; else ok++;
+  });
+
+  if (invSort.col) {
+    const getters = {
+      barcode: p => p.barcode, name: p => p.name, cat: p => p.cat,
+      price: p => p.price, cost: p => avgCost(p), stock: p => totalStock(p),
+    };
+    const get = getters[invSort.col];
+    list = list.slice().sort((a,b) => {
+      const va = get(a), vb = get(b);
+      const cmp = typeof va === 'string' ? va.localeCompare(vb, 'th') : va - vb;
+      return cmp * invSort.dir;
+    });
+  }
+  document.querySelectorAll('.inv-table th.sortable').forEach(th => {
+    th.classList.toggle('active', th.getAttribute('data-col') === invSort.col);
+    th.querySelector('.sort-arrow').textContent = th.getAttribute('data-col') === invSort.col ? (invSort.dir === 1 ? '↑' : '↓') : '⇅';
+  });
+
+  document.getElementById('invTableBody').innerHTML = list.map(p => {
     const stock = totalStock(p);
     const cost = avgCost(p);
     let status;
-    if (stock === 0) { status = '<span class="stock-badge badge-out">⛔ หมด</span>'; out++; }
-    else if (stock <= p.safetyStock) { status = '<span class="stock-badge badge-low">⚠️ ใกล้หมด</span>'; low++; }
-    else { status = '<span class="stock-badge badge-ok">✅ ปกติ</span>'; ok++; }
+    if (stock === 0) status = '<span class="stock-badge badge-out">⛔ หมด</span>';
+    else if (stock <= p.safetyStock) status = '<span class="stock-badge badge-low">⚠️ ใกล้หมด</span>';
+    else status = '<span class="stock-badge badge-ok">✅ ปกติ</span>';
     return `<tr>
+      <td><div class="thumb-cell" ${p.imageUrl ? `onclick="openLightbox('${p.imageUrl}')"` : ''}>${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div></td>
       <td class="barcode-mono">${p.barcode}${p.manualGen ? '<br><span class="manual-tag">🏷️ Manual Barcode Gen</span>' : ''}</td>
       <td><strong>${p.name}</strong></td>
       <td><span style="background:var(--surface2);padding:2px 8px;border-radius:10px;font-size:12px">${p.cat}</span></td>
@@ -1698,7 +1952,7 @@ function renderInventory() {
       <td>${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="editProduct('${p.barcode}')">แก้ไข</button>` : ''}</td>
     </tr>`;
   }).join('');
-  document.getElementById('invStatTotal').textContent = demoProducts.length;
+  document.getElementById('invStatTotal').textContent = list.length;
   document.getElementById('invStatOk').textContent = ok;
   document.getElementById('invStatLow').textContent = low;
   document.getElementById('invStatOut').textContent = out;
@@ -1762,7 +2016,7 @@ function renderMaster() {
     return `
     <div class="master-card" onclick="editProduct('${p.barcode}')">
       <div class="mc-img">
-        ${p.emoji}
+        ${p.imageUrl ? `<img src="${p.imageUrl}" onclick="event.stopPropagation();openLightbox('${p.imageUrl}')">` : p.emoji}
         <span class="mc-badge ${stock===0?'badge-out':stock<=p.safetyStock?'badge-low':'badge-ok'}">${stock===0?'หมด':stock<=p.safetyStock?'ใกล้หมด':'มีสต็อก'}</span>
       </div>
       <div class="mc-body">
@@ -1831,10 +2085,12 @@ async function renderReport() {
 // ========== ADD / EDIT PRODUCT MODAL ==========
 let editingBarcode = null;
 let pendingManualGen = false; // true เมื่อกด "Manual Gen" ค้างไว้ระหว่างกรอกฟอร์มเพิ่มสินค้าใหม่
+let pendingImageUrl = null;   // รูปที่อัปโหลดไว้ระหว่างกรอกฟอร์ม (อัปโหลดทันทีตอนเลือกไฟล์ แต่บันทึกเข้าสินค้าตอนกด "บันทึก")
 
 function showAddProduct() {
   editingBarcode = null;
   pendingManualGen = false;
+  pendingImageUrl = null;
   document.getElementById('productModalTitle').textContent = '➕ เพิ่มสินค้าใหม่';
   document.getElementById('newBarcode').value = '';
   document.getElementById('newBarcode').disabled = false;
@@ -1846,7 +2102,8 @@ function showAddProduct() {
   document.getElementById('newSafety').value = '5';
   document.getElementById('newCat').value = 'เครื่องดื่ม';
   document.getElementById('costStockRow').style.display = 'grid';
-  document.getElementById('newImageRow').style.display = 'block';
+  document.getElementById('newImageFile').value = '';
+  document.getElementById('newImagePreview').innerHTML = '📦';
   document.getElementById('genBarcodeBtn').style.display = can('master_manual_gen') ? 'inline-block' : 'none';
   document.getElementById('addModal').classList.add('open');
 }
@@ -1857,6 +2114,7 @@ function editProduct(barcode) {
   if (!p) return;
   editingBarcode = barcode;
   pendingManualGen = false;
+  pendingImageUrl = p.imageUrl || null;
   document.getElementById('productModalTitle').textContent = '✏️ แก้ไขสินค้า: ' + p.name;
   document.getElementById('newBarcode').value = p.barcode;
   document.getElementById('newBarcode').disabled = true;
@@ -1865,11 +2123,27 @@ function editProduct(barcode) {
   document.getElementById('newPrice').disabled = !can('master_edit_price');
   document.getElementById('newCat').value = p.cat;
   document.getElementById('newSafety').value = p.safetyStock;
-  // แก้ไขราคา/ชื่อ/หมวดหมู่ที่นี่ — ส่วนสต็อก/ต้นทุนให้ไปที่ "รับของเข้าสต็อก" แทน เพื่อให้ Lot ถูกต้อง
+  // แก้ไขราคา/ชื่อ/หมวดหมู่/รูปที่นี่ — ส่วนสต็อก/ต้นทุนให้ไปที่ "รับของเข้าสต็อก" แทน เพื่อให้ Lot ถูกต้อง
   document.getElementById('costStockRow').style.display = 'none';
-  document.getElementById('newImageRow').style.display = 'none';
+  document.getElementById('newImageFile').value = '';
+  document.getElementById('newImagePreview').innerHTML = p.imageUrl ? `<img src="${p.imageUrl}">` : '📦';
   document.getElementById('genBarcodeBtn').style.display = 'none'; // barcode ถูกล็อกตอนแก้ไข ไม่ให้ gen ทับ
   document.getElementById('addModal').classList.add('open');
+}
+
+async function handleProductImageChange(inputEl) {
+  const file = inputEl.files[0];
+  if (!file) return;
+  const barcode = document.getElementById('newBarcode').value.trim();
+  if (!barcode) { showToast('⚠️ กรอก Barcode ก่อนเลือกรูป'); inputEl.value = ''; return; }
+  const ext = file.name.split('.').pop();
+  const path = `products/${barcode}.${ext}`;
+  const { error: upErr } = await sb.storage.from('public-assets').upload(path, file, { upsert: true });
+  if (upErr) { showToast('⚠️ อัปโหลดรูปไม่สำเร็จ: ' + upErr.message); return; }
+  const { data: { publicUrl } } = sb.storage.from('public-assets').getPublicUrl(path);
+  pendingImageUrl = publicUrl + '?t=' + Date.now(); // กัน browser cache รูปเก่าไว้ตอนเปลี่ยนรูปซ้ำ barcode เดิม
+  document.getElementById('newImagePreview').innerHTML = `<img src="${pendingImageUrl}">`;
+  showToast('✅ อัปโหลดรูปแล้ว — กด "บันทึก" เพื่อเก็บเข้าสินค้า');
 }
 
 function closeModal() {
@@ -1946,7 +2220,7 @@ async function saveNewProduct() {
     const p = demoProducts.find(x => x.barcode === editingBarcode);
     if (!p) { closeModal(); return; }
     const priceChanged = can('master_edit_price') && p.price !== price;
-    const { error } = await sb.from('products').update({ name, price, cat, safety_stock: safetyStock }).eq('barcode', p.barcode);
+    const { error } = await sb.from('products').update({ name, price, cat, safety_stock: safetyStock, image_url: pendingImageUrl }).eq('barcode', p.barcode);
     if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
     if (priceChanged) {
       await sb.from('price_changes').insert({ barcode: p.barcode, name, prev_price: p.price, new_price: price, changed_by: session.user.id });
@@ -1959,7 +2233,7 @@ async function saveNewProduct() {
     const cost = parseFloat(document.getElementById('newCost').value) || 0;
     const stock = parseInt(document.getElementById('newStock').value) || 0;
     const { error: insErr } = await sb.from('products').insert({
-      barcode, name, brand: name, cat, price, emoji: '📦', safety_stock: safetyStock, manual_gen: pendingManualGen,
+      barcode, name, brand: name, cat, price, emoji: '📦', safety_stock: safetyStock, manual_gen: pendingManualGen, image_url: pendingImageUrl,
     });
     if (insErr) { showToast('⚠️ เพิ่มสินค้าไม่สำเร็จ: ' + insErr.message); return; }
     if (stock > 0) {
@@ -2048,6 +2322,10 @@ function withTimeout(promise, ms) {
   ]);
 }
 
+function focusPosSearchIfActive() {
+  if (currentPage === 'pos') setTimeout(() => { const el = document.getElementById('posSearch'); if (el) el.focus(); }, 0);
+}
+
 function applyOfflineFallback(cached) {
   profile = cached.profile; perms = cached.perms; isAdmin = cached.isAdmin; demoProducts = cached.products;
   showToast('⚠️ ออฟไลน์ — ใช้ข้อมูลล่าสุดที่บันทึกไว้ (ขายของ/sync ใหม่ต้องรอมีเน็ต)');
@@ -2056,6 +2334,7 @@ function applyOfflineFallback(cached) {
   applyPermissionsToNav();
   hideAuthOverlay();
   renderProducts(demoProducts);
+  focusPosSearchIfActive();
 }
 
 async function onAuthed() {
@@ -2100,6 +2379,7 @@ async function onAuthed() {
   hideAuthOverlay();
   renderProducts(demoProducts);
   renderManager();
+  focusPosSearchIfActive();
 }
 
 sb.auth.onAuthStateChange((event, s) => {
@@ -2162,16 +2442,43 @@ async function createStaffUser() {
   renderUsers();
 }
 
+// ========== POS LEFT PANEL RESIZER ==========
+(function setupPosResizer() {
+  const left = document.getElementById('posLeft');
+  const handle = document.getElementById('posResizer');
+  const saved = parseInt(localStorage.getItem('mm_pos_left_width')) || null;
+  if (saved) left.style.width = saved + 'px';
+
+  let dragging = false;
+  function onMove(clientX) {
+    const rect = left.parentElement.getBoundingClientRect();
+    const w = Math.min(Math.max(clientX - rect.left, 260), rect.width * 0.7);
+    left.style.width = w + 'px';
+  }
+  handle.addEventListener('pointerdown', e => {
+    dragging = true;
+    handle.classList.add('dragging');
+    handle.setPointerCapture(e.pointerId);
+  });
+  handle.addEventListener('pointermove', e => { if (dragging) onMove(e.clientX); });
+  handle.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    handle.classList.remove('dragging');
+    try { localStorage.setItem('mm_pos_left_width', parseInt(left.style.width)); } catch (e) {}
+  });
+})();
+
 // ========== INIT ==========
 renderCashGrid();
-document.querySelectorAll('.bottom-tab').forEach(t => {
-  if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'pos'")) t.classList.add('active');
+// โหลดแบรนด์ร้าน/ลำดับเมนูก่อนเช็ค login เลย เพื่อให้หน้า login ก็เห็นชื่อร้าน/โลโก้ที่ตั้งไว้ด้วย
+loadSettings().then(() => {
+  // onAuthed() already does its own getSession() with a timeout + cache fallback,
+  // and falls through to checkBootstrapOrLogin() when there's no session —
+  // no need to duplicate that check here (duplicating it was the bug that left
+  // the app stuck on the loading screen when the first getSession() call hung).
+  onAuthed();
 });
-// onAuthed() already does its own getSession() with a timeout + cache fallback,
-// and falls through to checkBootstrapOrLogin() when there's no session —
-// no need to duplicate that check here (duplicating it was the bug that left
-// the app stuck on the loading screen when the first getSession() call hung).
-onAuthed();
 </script>
 </body>
 </html>
