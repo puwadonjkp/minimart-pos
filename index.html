@@ -64,6 +64,23 @@ body {
 }
 .nav-tab:hover { background: rgba(255,255,255,0.1); color: #fff; }
 .nav-tab.active { background: rgba(255,255,255,0.18); color: #fff; font-weight: 600; }
+.nav-group { position: relative; }
+.nav-group-trigger { display: flex; align-items: center; gap: 4px; }
+.nav-caret { font-size: 10px; opacity: 0.8; }
+.nav-dropdown {
+  display: none;
+  position: absolute; top: calc(100% + 6px); left: 0;
+  background: var(--surface); border-radius: 10px; box-shadow: var(--shadow-lg);
+  padding: 6px; min-width: 200px; flex-direction: column; gap: 2px; z-index: 60;
+}
+.nav-dropdown.open { display: flex; }
+.nav-subtab {
+  color: var(--text) !important; background: none; text-align: left;
+  padding: 9px 12px; border-radius: 8px; font-size: 14px; font-weight: 500;
+}
+.nav-subtab:hover { background: var(--surface2); }
+.nav-subtab.active { background: #e8f4e8; color: var(--accent) !important; font-weight: 700; }
+.nav-group.perm-hidden { display: none !important; }
 .nav-right { display: flex; align-items: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.8); }
 .role-chip { background: rgba(255,255,255,0.18); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 [data-perm].perm-hidden { display: none !important; }
@@ -212,15 +229,20 @@ body {
     gap: 6px;
   }
 
-  /* Cart takes remaining space */
-  .pos-right {
+  /* Cart items takes remaining space, payment panel sits full-width below it */
+  .pos-cart {
     flex: 1;
     min-height: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
   }
-
-  .cart-summary {
+  .pos-payment {
+    width: 100%;
+    max-width: none;
+    flex-shrink: 0;
     padding: 12px 16px;
   }
+  .pos-payment-resizer { display: none; }
   .sum-total { font-size: 22px; padding: 10px 14px; }
   .btn-pay { padding: 14px; font-size: 17px; }
   .pay-input { font-size: 18px; padding: 10px 14px; }
@@ -459,14 +481,36 @@ body {
 .pc-stock { font-size: 11.5px; color: var(--text2); margin-top: 2px; }
 .pc-stock.low { color: var(--red); font-weight: 600; }
 
-/* RIGHT — Cart (big, สบายตา) */
-.pos-right {
+/* MIDDLE — Cart items (ยาวลงมาเป็นแนวตั้ง เห็นได้หลายรายการพร้อมกัน) */
+.pos-cart {
   flex: 1;
+  min-width: 0;
   background: var(--surface);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  border-right: 1px solid var(--border);
 }
+
+/* RIGHT — Payment (เงิน/เงินทอน แยกเป็นคอลัมน์ของตัวเอง ไม่บังรายการสินค้า) */
+.pos-payment {
+  width: 400px;
+  min-width: 300px;
+  max-width: 55vw;
+  flex-shrink: 0;
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 18px 24px;
+  position: relative;
+}
+.pos-payment-resizer {
+  position: absolute; top: 0; left: -4px; bottom: 0; width: 9px;
+  cursor: col-resize; z-index: 5; touch-action: none;
+}
+.pos-payment-resizer::after { content:''; position:absolute; top:0; bottom:0; left:3px; width:3px; background:var(--border); border-radius:2px; }
+.pos-payment-resizer:hover::after, .pos-payment-resizer.dragging::after { background: var(--accent2); }
 .cart-header {
   padding: 18px 24px;
   border-bottom: 1px solid var(--border);
@@ -522,21 +566,6 @@ body {
 .ci-del { color: var(--red); font-size: 20px; cursor: pointer; padding: 4px 6px; opacity: 0.6; }
 .ci-del:hover { opacity: 1; }
 
-.cart-summary {
-  padding: 18px 24px;
-  border-top: 2px solid var(--border);
-  background: var(--surface2);
-  flex-shrink: 0;
-  max-height: 70vh;
-  overflow-y: auto;
-  position: relative;
-}
-.cart-resizer {
-  position: absolute; top: -5px; left: 0; right: 0; height: 10px;
-  cursor: row-resize; z-index: 5; touch-action: none;
-}
-.cart-resizer::after { content:''; position:absolute; left:0; right:0; top:3px; height:3px; background:var(--border); border-radius:2px; margin:0 auto; width:60px; left:50%; transform:translateX(-50%); }
-.cart-resizer:hover::after, .cart-resizer.dragging::after { background: var(--accent2); }
 .sum-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--text2); margin-bottom: 8px; }
 .sum-total {
   display: flex; justify-content: space-between;
@@ -1087,8 +1116,8 @@ body {
 
   </div>
 
-  <!-- RIGHT: Big Cart -->
-  <div class="pos-right">
+  <!-- MIDDLE: Cart items, full height so many rows are visible at once -->
+  <div class="pos-cart">
     <div class="cart-header">
       <span>🛒 รายการสินค้า &nbsp;<span style="font-size:15px;font-weight:500;color:var(--text2)">(<span id="cartCount">0</span> รายการ)</span></span>
       <button class="btn btn-outline" style="font-size:13px;" onclick="clearCart()">🗑 ล้างตะกร้า</button>
@@ -1099,19 +1128,21 @@ body {
         <span style="font-size:13px">พิมพ์ค้นหา หรือกดเลือกสินค้าด้านซ้าย</span>
       </div>
     </div>
-    <div class="cart-summary" id="cartSummary">
-      <div class="cart-resizer" id="cartResizer"></div>
-      <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
-      <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
-      <div class="cash-grid" id="cashGrid"></div>
-      <div class="pay-row">
-        <span class="pay-label">รับเงิน</span>
-        <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()" title="พิมพ์เองกรณีฉุกเฉิน — ปกติใช้ปุ่มธนบัตรด้านบน">
-        <button class="btn btn-outline" style="flex-shrink:0" onclick="clearCash()">ล้าง</button>
-      </div>
-      <div class="change-row"><span>เงินทอน</span><span id="changeAmt">฿0.00</span></div>
-      <button class="btn-pay" onclick="processSale()">💳 ชำระเงิน</button>
+  </div>
+
+  <!-- RIGHT: Payment — เงิน/เงินทอน แยกเป็นคอลัมน์ของตัวเอง ไม่ซ้อนทับรายการสินค้าอีกต่อไป -->
+  <div class="pos-payment" id="posPayment">
+    <div class="pos-payment-resizer" id="posPaymentResizer"></div>
+    <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
+    <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
+    <div class="cash-grid" id="cashGrid"></div>
+    <div class="pay-row">
+      <span class="pay-label">รับเงิน</span>
+      <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()" title="พิมพ์เองกรณีฉุกเฉิน — ปกติใช้ปุ่มธนบัตรด้านบน">
+      <button class="btn btn-outline" style="flex-shrink:0" onclick="clearCash()">ล้าง</button>
     </div>
+    <div class="change-row"><span>เงินทอน</span><span id="changeAmt">฿0.00</span></div>
+    <button class="btn-pay" onclick="processSale()">💳 ชำระเงิน</button>
   </div>
 </div>
 
@@ -1687,18 +1718,31 @@ setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
 const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage' };
+// navbar เริ่มรก เลยจัดกลุ่ม: คลังสินค้า/Master Data/Manual Barcode รวมเป็น "จัดการสินค้า"
+// และผู้ใช้งาน/ตั้งค่าระบบ/สิทธิ์การเข้าถึง/Architecture รวมเป็น "ตั้งค่า" — เหลือ 5 ปุ่มบนแถบหลัก
 const NAV_ITEMS = [
-  { key: 'arch', icon: '🗺️', label: 'Architecture', mobileLabel: 'ระบบ', perm: null },
   { key: 'pos', icon: '🛒', label: 'หน้าขาย (POS)', mobileLabel: 'ขายของ', perm: 'pos_sell' },
-  { key: 'inventory', icon: '📦', label: 'คลังสินค้า', mobileLabel: 'คลัง', perm: 'inventory_view' },
-  { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
-  { key: 'manualbc', icon: '🏷️', label: 'Manual Barcode', mobileLabel: 'บาร์โค้ด', perm: 'master_manual_gen' },
+  { key: 'products', icon: '📦', label: 'จัดการสินค้า', mobileLabel: 'สินค้า', group: true, children: [
+      { key: 'inventory', icon: '📦', label: 'คลังสินค้า', mobileLabel: 'คลัง', perm: 'inventory_view' },
+      { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
+      { key: 'manualbc', icon: '🏷️', label: 'Manual Barcode', mobileLabel: 'บาร์โค้ด', perm: 'master_manual_gen' },
+    ] },
   { key: 'report', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', perm: 'report_view' },
   { key: 'manager', icon: '📋', label: 'จัดการ', mobileLabel: 'จัดการ', perm: 'manager_view', badge: true },
-  { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
-  { key: 'permissions', icon: '🔐', label: 'สิทธิ์การเข้าถึง', mobileLabel: 'สิทธิ์', perm: 'permissions_manage' },
-  { key: 'settings', icon: '⚙️', label: 'ตั้งค่าระบบ', mobileLabel: 'ตั้งค่า', perm: 'settings_manage' },
+  { key: 'settingsMenu', icon: '⚙️', label: 'ตั้งค่า', mobileLabel: 'ตั้งค่า', group: true, children: [
+      { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
+      { key: 'permissions', icon: '🔐', label: 'สิทธิ์การเข้าถึง', mobileLabel: 'สิทธิ์', perm: 'permissions_manage' },
+      { key: 'settings', icon: '⚙️', label: 'ตั้งค่าระบบ', mobileLabel: 'ตั้งค่า', perm: 'settings_manage' },
+      { key: 'arch', icon: '🗺️', label: 'System Architecture', mobileLabel: 'ระบบ', perm: null },
+    ] },
 ];
+function leafNavItems() {
+  // รวมเมนูลูกของทุกกลุ่มให้แบนเป็นลิสต์เดียว — ใช้กับเมนูล่างบนมือถือ (ไม่มี dropdown)
+  // และตอนหาว่า "มีหน้าไหนที่ยังเข้าได้บ้าง" เวลาโดนเด้งออกจากหน้าที่หมดสิทธิ์
+  const out = [];
+  NAV_ITEMS.forEach(n => n.group ? out.push(...n.children) : out.push(n));
+  return out;
+}
 function navOrderedItems() {
   const order = (appSettings.nav_order || []).filter(k => NAV_ITEMS.some(n => n.key === k));
   const missing = NAV_ITEMS.map(n => n.key).filter(k => !order.includes(k));
@@ -1710,18 +1754,49 @@ let currentPage = 'pos'; // tracked explicitly instead of read back from the DOM
                           // after a rebuild was silently kicking the user back to another page.
 function renderNavTabs() {
   const items = navOrderedItems();
-  document.getElementById('navTabs').innerHTML = items.map(n => `
-    <button class="nav-tab" ${n.perm ? `data-perm="${n.perm}"` : ''} onclick="showPage('${n.key}',this)">${n.icon} ${n.label}${n.badge ? '<span class="alert-badge" id="navAlertBadge" style="display:none"></span>' : ''}</button>
-  `).join('');
-  document.getElementById('bottomNavTabs').innerHTML = items.map(n => `
+  document.getElementById('navTabs').innerHTML = items.map(n => {
+    if (n.group) {
+      const childButtons = n.children.map(c => `
+        <button class="nav-tab nav-subtab" ${c.perm ? `data-perm="${c.perm}"` : ''} onclick="showPage('${c.key}',this);closeNavDropdowns()">${c.icon} ${c.label}</button>
+      `).join('');
+      return `
+      <div class="nav-group">
+        <button class="nav-tab nav-group-trigger" onclick="toggleNavDropdown(this)">${n.icon} ${n.label} <span class="nav-caret">▾</span></button>
+        <div class="nav-dropdown">${childButtons}</div>
+      </div>`;
+    }
+    return `<button class="nav-tab" ${n.perm ? `data-perm="${n.perm}"` : ''} onclick="showPage('${n.key}',this)">${n.icon} ${n.label}${n.badge ? '<span class="alert-badge" id="navAlertBadge" style="display:none"></span>' : ''}</button>`;
+  }).join('');
+  const leaves = leafNavItems();
+  document.getElementById('bottomNavTabs').innerHTML = leaves.map(n => `
     <button class="bottom-tab" ${n.perm ? `data-perm="${n.perm}"` : ''} onclick="showPage('${n.key}',this)"><span class="tab-icon">${n.icon}</span>${n.mobileLabel}${n.badge ? '<span class="alert-badge" id="navAlertBadgeMobile" style="display:none"></span>' : ''}</button>
   `).join('');
-  // restore which tab looks active after the rebuild — doesn't change the page itself
-  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
-    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${currentPage}'`)) t.classList.add('active');
-  });
+  syncNavActiveState();
   applyPermissionsToNav();
 }
+// ไฮไลต์ปุ่ม/ซับเมนูที่ตรงกับหน้าปัจจุบัน — เรียกทั้งตอน render nav ใหม่ทั้งหมด
+// และทุกครั้งที่เปลี่ยนหน้า (ไม่งั้นปุ่มกลุ่ม เช่น "จัดการสินค้า" จะไม่ไฮไลต์ตอนกดเมนูลูกข้างใน)
+function syncNavActiveState() {
+  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
+    t.classList.toggle('active', !!(t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${currentPage}'`)));
+  });
+  // ถ้าหน้าปัจจุบันเป็นลูกของกลุ่มไหน ให้ไฮไลต์ปุ่มกลุ่มนั้นด้วย (ตัวลูกเองถูกซ่อนอยู่ใน dropdown)
+  document.querySelectorAll('.nav-group').forEach(g => {
+    g.querySelector('.nav-group-trigger').classList.toggle('active', !!g.querySelector('.nav-subtab.active'));
+  });
+}
+function toggleNavDropdown(btn) {
+  const panel = btn.nextElementSibling;
+  const wasOpen = panel.classList.contains('open');
+  closeNavDropdowns();
+  if (!wasOpen) panel.classList.add('open');
+}
+function closeNavDropdowns() {
+  document.querySelectorAll('.nav-dropdown.open').forEach(p => p.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-group')) closeNavDropdowns();
+});
 
 function showPage(name, el) {
   if (PAGE_PERMS[name] && !can(PAGE_PERMS[name])) { showToast('⚠️ ไม่มีสิทธิ์เข้าหน้านี้'); return; }
@@ -1729,12 +1804,7 @@ function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
-  // highlight clicked tab (desktop or mobile)
-  if (el) el.classList.add('active');
-  // also sync other nav
-  document.querySelectorAll('.nav-tab, .bottom-tab').forEach(t => {
-    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(`'${name}'`)) t.classList.add('active');
-  });
+  syncNavActiveState();
   if (name === 'pos') setTimeout(() => document.getElementById('posSearch').focus(), 0);
   if (name === 'inventory') renderInventory();
   if (name === 'master') renderMaster();
@@ -1755,10 +1825,16 @@ function applyPermissionsToNav() {
     const key = el.getAttribute('data-perm');
     el.classList.toggle('perm-hidden', !can(key));
   });
+  // ปุ่มกลุ่ม (จัดการสินค้า/ตั้งค่า) ไม่มี data-perm ของตัวเอง — ซ่อนก็ต่อเมื่อลูกข้างในถูกซ่อนหมดทุกตัว
+  document.querySelectorAll('.nav-group').forEach(g => {
+    const children = [...g.querySelectorAll('.nav-subtab')];
+    const anyVisible = children.some(c => !c.hasAttribute('data-perm') || !c.classList.contains('perm-hidden'));
+    g.classList.toggle('perm-hidden', !anyVisible);
+  });
   if (!profile) return;
   const requiredPerm = PAGE_PERMS[currentPage];
   if (requiredPerm && !can(requiredPerm)) {
-    const firstAllowed = [...document.querySelectorAll('.nav-tab[data-perm]')].find(t => can(t.getAttribute('data-perm')));
+    const firstAllowed = [...document.querySelectorAll('.nav-tab[data-perm], .nav-subtab[data-perm]')].find(t => can(t.getAttribute('data-perm')));
     if (firstAllowed) firstAllowed.click(); else showPage('arch');
   }
 }
@@ -1816,7 +1892,7 @@ document.getElementById('myProfileModal').addEventListener('click', function(e) 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
 let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3' };
 const CARD_RATIOS = ['1/1', '4/5', '2/3', '1/2'];
-function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','manualbc','report','manager','users','permissions','settings']; }
+function NAV_ITEMS_DEFAULT_ORDER() { return ['pos','products','report','manager','settingsMenu']; }
 
 const SETTINGS_CACHE_KEY = 'mm_settings_cache_v1';
 async function loadSettings() {
@@ -2559,8 +2635,10 @@ async function deleteProduct() {
   const p = demoProducts.find(x => x.sku === editingSku);
   if (!p) return;
   if (!confirm(`ยืนยันลบสินค้า "${p.name}" ใช่หรือไม่? ลบแล้วกู้คืนไม่ได้`)) return;
-  const { error } = await sb.from('products').delete().eq('sku', editingSku);
+  const { data, error } = await sb.from('products').delete().eq('sku', editingSku).select('sku');
   if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
+  // RLS บล็อกเงียบๆ ได้ (ลบ 0 แถว ไม่มี error) ถ้า policy ไม่อนุญาต — เช็คว่าแถวหายจริงก่อนบอกว่าสำเร็จ
+  if (!data || data.length === 0) { showToast('⚠️ ลบไม่สำเร็จ: ไม่มีสิทธิ์ลบสินค้านี้'); return; }
   showToast(`✅ ลบ ${p.name} แล้ว`);
   closeModal();
   await loadProducts();
@@ -3011,32 +3089,30 @@ async function createStaffUser() {
   });
 })();
 
-// ========== CART / PAYMENT PANEL RESIZER (ปรับสัดส่วนตะกร้า vs ส่วนจ่ายเงิน) ==========
-(function setupCartResizer() {
-  const summary = document.getElementById('cartSummary');
-  const handle = document.getElementById('cartResizer');
-  const saved = parseInt(localStorage.getItem('mm_cart_summary_height')) || null;
-  if (saved) summary.style.height = saved + 'px';
+// ========== PAYMENT PANEL RESIZER (ปรับความกว้างคอลัมน์เงิน/เงินทอน vs ตะกร้า) ==========
+(function setupPosPaymentResizer() {
+  const panel = document.getElementById('posPayment');
+  const handle = document.getElementById('posPaymentResizer');
+  const saved = parseInt(localStorage.getItem('mm_pos_payment_width')) || null;
+  if (saved) panel.style.width = saved + 'px';
 
-  let dragging = false, startY = 0, startHeight = 0;
-  function onMove(clientY) {
-    const maxH = summary.parentElement.getBoundingClientRect().height * 0.8;
-    const h = Math.min(Math.max(startHeight - (clientY - startY), 160), maxH);
-    summary.style.height = h + 'px';
+  let dragging = false;
+  function onMove(clientX) {
+    const rect = panel.parentElement.getBoundingClientRect();
+    const w = Math.min(Math.max(rect.right - clientX, 300), rect.width * 0.55);
+    panel.style.width = w + 'px';
   }
   handle.addEventListener('pointerdown', e => {
     dragging = true;
-    startY = e.clientY;
-    startHeight = summary.getBoundingClientRect().height;
     handle.classList.add('dragging');
     handle.setPointerCapture(e.pointerId);
   });
-  handle.addEventListener('pointermove', e => { if (dragging) onMove(e.clientY); });
+  handle.addEventListener('pointermove', e => { if (dragging) onMove(e.clientX); });
   handle.addEventListener('pointerup', () => {
     if (!dragging) return;
     dragging = false;
     handle.classList.remove('dragging');
-    try { localStorage.setItem('mm_cart_summary_height', parseInt(summary.style.height)); } catch (e) {}
+    try { localStorage.setItem('mm_pos_payment_width', parseInt(panel.style.width)); } catch (e) {}
   });
 })();
 
