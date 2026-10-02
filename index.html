@@ -664,6 +664,15 @@ body {
 .badge-out { background: #fdecea; color: var(--red); }
 .barcode-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text2); }
 
+/* ===== STOCK LOT DETAIL MODAL ===== */
+.lot-row { display: flex; align-items: center; gap: 14px; background: var(--surface2); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+.lot-row.depleted { opacity: 0.55; }
+.lot-info { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 13px; }
+.lot-info .lot-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.lot-info .lot-val { font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.lot-active-tag { background: var(--green); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.lot-depleted-tag { background: var(--border); color: var(--text2); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+
 /* ===== MASTER DATA PAGE ===== */
 #page-master {
   flex-direction: column;
@@ -1447,6 +1456,17 @@ body {
   </div>
 </div>
 
+<!-- Stock Lot Detail Modal -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="stockModalTitle">📦 รายละเอียด Lot สต็อก</div>
+    <div id="stockModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeStockModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Vendored locally (not loaded from a CDN) so the app still boots and the
@@ -1490,7 +1510,7 @@ async function loadProducts() {
   ]);
   if (pErr) { showToast('⚠️ โหลดสินค้าไม่สำเร็จ: ' + pErr.message); return; }
   const lotsBySku = {};
-  (lots || []).forEach(l => { (lotsBySku[l.sku] ||= []).push({ id: l.id, qty: l.qty, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
+  (lots || []).forEach(l => { (lotsBySku[l.sku] ||= []).push({ id: l.id, qty: l.qty, qtyReceived: l.qty_received, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
   snoozes = {};
   (snoozeRows || []).forEach(s => { snoozes[s.sku] = new Date(s.snoozed_until).getTime(); });
   demoProducts = (products || []).map(p => ({
@@ -2121,7 +2141,10 @@ function renderInventory() {
       <td style="color:var(--text2)">฿${cost.toFixed(2)}</td>
       <td><strong style="font-family:'IBM Plex Mono',monospace">${stock}</strong></td>
       <td>${status}</td>
-      <td>${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="editProduct('${p.sku}')">แก้ไข</button>` : ''}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="showStockModal('${p.sku}')">📦 Stock</button>
+        ${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;margin-left:4px" onclick="editProduct('${p.sku}')">แก้ไข</button>` : ''}
+      </td>
     </tr>`;
   }).join('');
   document.getElementById('invStatTotal').textContent = list.length;
@@ -2154,13 +2177,45 @@ async function saveReceiveStock() {
   const qty = parseInt(document.getElementById('rcvQty').value) || 0;
   const cost = parseFloat(document.getElementById('rcvCost').value) || 0;
   if (qty <= 0) { showToast('⚠️ กรอกจำนวนให้ถูกต้อง'); return; }
-  const { error } = await sb.from('product_lots').insert({ sku: p.sku, barcode: bc, qty, cost, received_by: session.user.id });
+  const { error } = await sb.from('product_lots').insert({ sku: p.sku, barcode: bc, qty, qty_received: qty, cost, received_by: session.user.id });
   if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
   showToast(`✅ รับของเข้า: ${p.name} +${qty} ชิ้น`);
   closeReceiveModal();
   await loadProducts();
   renderInventory(); renderMaster(); renderProducts(demoProducts); renderManager();
 }
+
+// ========== STOCK LOT DETAIL (ดู Lot ทั้งหมดของสินค้าทีละตัว แบบ FIFO) ==========
+function showStockModal(sku) {
+  const p = demoProducts.find(x => x.sku === sku);
+  if (!p) return;
+  document.getElementById('stockModalTitle').textContent = `📦 Lot สต็อก: ${p.name}`;
+  // เรียงเก่าสุดก่อน (FIFO) — ตรงกับลำดับที่ sell() ตัดสต็อกจริงบนเซิร์ฟเวอร์
+  const lots = p.lots.slice().sort((a, b) => a.date - b.date);
+  // Lot ที่ "ใช้อยู่" คือ Lot เก่าสุดที่ยังไม่หมด (ตัวแรกที่เจอตามลำดับ FIFO)
+  const activeLotId = (lots.find(l => l.qty > 0) || {}).id;
+  document.getElementById('stockModalBody').innerHTML = lots.length ? lots.map(l => {
+    const sold = l.qtyReceived - l.qty;
+    const depleted = l.qty === 0;
+    const isActive = l.id === activeLotId;
+    return `
+    <div class="lot-row ${depleted ? 'depleted' : ''}">
+      <div class="lot-info">
+        <div><div class="lot-label">รับเข้า</div><div class="lot-val">${new Date(l.date).toLocaleDateString('th-TH')}</div></div>
+        <div><div class="lot-label">รับเข้า (ชิ้น)</div><div class="lot-val">${l.qtyReceived}</div></div>
+        <div><div class="lot-label">ต้นทุน/ชิ้น</div><div class="lot-val">฿${l.cost.toFixed(2)}</div></div>
+        <div><div class="lot-label">ขายไปแล้ว</div><div class="lot-val">${sold}</div></div>
+      </div>
+      <div style="text-align:center;min-width:70px">
+        <div class="lot-label" style="margin-bottom:2px">เหลือ</div>
+        <div class="lot-val" style="font-size:18px">${l.qty}</div>
+      </div>
+      ${isActive ? '<span class="lot-active-tag">🟢 ใช้อยู่ (FIFO)</span>' : depleted ? '<span class="lot-depleted-tag">หมดแล้ว</span>' : ''}
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:30px;color:var(--text2)">ยังไม่มี Lot สต็อกสำหรับสินค้านี้</div>`;
+  document.getElementById('stockModal').classList.add('open');
+}
+function closeStockModal() { document.getElementById('stockModal').classList.remove('open'); }
 
 // ========== MASTER DATA (ค้นหา / กรองหมวดหมู่ / เรียงลำดับ) ==========
 let masterFilter = { status: 'all', manual: false };
@@ -2423,6 +2478,7 @@ function closeModal() {
 }
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
+document.getElementById('stockModal').addEventListener('click', function(e) { if(e.target===this) closeStockModal(); });
 document.getElementById('ticketModal').addEventListener('click', function(e) { if(e.target===this) closeTicketModal(); });
 
 // ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
@@ -2560,7 +2616,7 @@ async function saveNewProduct() {
     }).select('sku').single();
     if (insErr) { showToast('⚠️ เพิ่มสินค้าไม่สำเร็จ: ' + insErr.message); return; }
     if (stock > 0) {
-      await sb.from('product_lots').insert({ sku: insData.sku, barcode, qty: stock, cost, received_by: session.user.id });
+      await sb.from('product_lots').insert({ sku: insData.sku, barcode, qty: stock, qty_received: stock, cost, received_by: session.user.id });
     }
     showToast('✅ เพิ่มสินค้าสำเร็จ!');
   }
