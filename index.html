@@ -451,7 +451,7 @@ body {
 }
 .product-card:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card:active { transform: scale(0.96); }
-.product-card.out-of-stock { opacity: 0.38; pointer-events: none; }
+.product-card.stock-warn { border-color: #f5b8b3; background: #fff8f7; }
 .pc-img { font-size: 34px; margin-bottom: 5px; aspect-ratio: var(--pc-ratio, 2 / 3); width: 100%; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; overflow: hidden; }
 .pc-img img { width: 100%; height: 100%; object-fit: cover; }
 .pc-name { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
@@ -885,7 +885,7 @@ body {
   <div class="nav-tabs" id="navTabs"></div>
   <div class="nav-right">
     <span class="role-chip" id="navRoleChip">—</span>
-    <span id="navUserName">—</span>
+    <span id="navUserName" style="cursor:pointer" onclick="openMyProfile()" title="แก้ไขโปรไฟล์ของฉัน">—</span>
     <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="doLogout()">ออกจากระบบ</button>
     <span class="nav-time" id="clock">--:--:--</span>
   </div>
@@ -917,7 +917,7 @@ body {
     </div>
     <div id="authLoginForm" style="display:none">
       <div class="auth-title">เข้าสู่ระบบ</div>
-      <input class="form-input" id="liEmail" type="email" placeholder="อีเมล">
+      <input class="form-input" id="liEmail" placeholder="UserID หรือ อีเมล">
       <input class="form-input" id="liPassword" type="password" placeholder="รหัสผ่าน" style="margin-top:8px">
       <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" onclick="doLogin()">เข้าสู่ระบบ</button>
       <div class="auth-err" id="liErr"></div>
@@ -1253,6 +1253,12 @@ body {
   </div>
 
   <div class="report-card">
+    <div class="report-card-title">⚠️ ความคลาดเคลื่อนสต็อก (ขายตอนระบบว่าหมด)</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">รายการที่หน้างานขายไปแต่ระบบนับว่าของหมดแล้ว — ตรวจนับของจริงแล้วกด "รับของเข้าสต็อก" เพื่อปรับให้ตรง จากนั้นกดล้างรายการนี้</div>
+    <div id="discrepancyList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <div class="report-card">
     <div class="report-card-title">📝 ประวัติการปรับราคา</div>
     <div class="inv-table-wrap" style="padding:0">
       <table class="inv-table">
@@ -1471,6 +1477,30 @@ body {
   </div>
 </div>
 
+<!-- My Profile Modal (แก้ไขชื่อที่แสดง / Avatar / UserID ของตัวเอง) -->
+<div class="modal-overlay" id="myProfileModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🙂 โปรไฟล์ของฉัน</div>
+    <div class="form-group">
+      <label class="form-label">Avatar (เลือก Emoji)</label>
+      <div class="ratio-chip-row" id="avatarEmojiChips"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ชื่อที่แสดง</label>
+      <input class="form-input" id="mpDisplayName" placeholder="เช่น ข้าวตัง">
+    </div>
+    <div class="form-group">
+      <label class="form-label">UserID (ใช้ Login แทนอีเมลได้)</label>
+      <input class="form-input" id="mpUserId" placeholder="เช่น khaotang">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveMyProfile()">💾 บันทึก</button>
+      <button class="btn btn-outline" onclick="closeMyProfile()">ยกเลิก</button>
+    </div>
+    <div class="auth-err" id="mpErr"></div>
+  </div>
+</div>
+
 <!-- Stock Lot Detail Modal -->
 <div class="modal-overlay" id="stockModal">
   <div class="modal" style="max-width:640px">
@@ -1555,6 +1585,11 @@ async function markOrdered(sku) {
   showToast(`📦 บันทึกว่าสั่งของแล้ว จะเตือนอีกครั้งใน ${SNOOZE_DAYS} วัน`);
   renderManager();
 }
+async function dismissDiscrepancy(id) {
+  const { error } = await sb.from('stock_discrepancies').delete().eq('id', id);
+  if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
+  renderManager();
+}
 async function remindAgain(sku) {
   const { error } = await sb.from('stock_snoozes').delete().eq('sku', sku);
   if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
@@ -1600,6 +1635,22 @@ async function renderManager() {
     }).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px">— ไม่มี —</div>`;
   }
 
+  const discBody = document.getElementById('discrepancyList');
+  if (discBody) {
+    const { data: discs } = await sb.from('stock_discrepancies').select('*').order('noted_at', { ascending: false }).limit(50);
+    discBody.innerHTML = (discs && discs.length) ? discs.map(d => {
+      const p = demoProducts.find(x => x.sku === d.sku);
+      return `<div class="alert-row">
+        <div class="alert-emoji">${p ? p.emoji : '❓'}</div>
+        <div class="alert-info">
+          <div class="alert-name">${p ? p.name : d.sku}</div>
+          <div class="alert-sub">ขายเกินสต็อกที่มี ${d.qty_short} ชิ้น · ${new Date(d.noted_at).toLocaleString('th-TH')}</div>
+        </div>
+        ${canResolve ? `<button class="btn btn-outline" onclick="dismissDiscrepancy('${d.id}')">✅ ปรับแล้ว / รับทราบ</button>` : ''}
+      </div>`;
+    }).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px">✅ ไม่มีความคลาดเคลื่อน</div>`;
+  }
+
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const { data: todaySales } = await sb.from('sales').select('total, profit').gte('sold_at', todayStart.toISOString());
   const total = (todaySales || []).reduce((s,x) => s + Number(x.total), 0);
@@ -1613,15 +1664,17 @@ async function renderManager() {
   const logBody = document.getElementById('priceLogBody');
   if (logBody) {
     const { data: rows } = await sb.from('price_changes')
-      .select('*, profiles(display_name)')
+      .select('*')
       .order('changed_at', { ascending: false }).limit(50);
+    // ใช้ชื่อที่บันทึกไว้ ณ ตอนนั้น (changed_by_name) ไม่ใช่ join สดไปยัง profiles —
+    // กันไม่ให้ประวัติเก่าโชว์ชื่อใหม่ย้อนหลังถ้าคนคนนั้นเปลี่ยนชื่อแสดงทีหลัง
     logBody.innerHTML = (rows && rows.length) ? rows.map(c => `
       <tr>
         <td style="color:var(--text2);font-size:12px">${new Date(c.changed_at).toLocaleString('th-TH')}</td>
         <td><strong>${c.name}</strong></td>
         <td>฿${c.prev_price}</td>
         <td style="color:var(--accent);font-weight:700">฿${c.new_price}</td>
-        <td>${c.profiles ? c.profiles.display_name : '—'}</td>
+        <td>${c.changed_by_name || '—'}</td>
       </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:16px">— ยังไม่มีการปรับราคา —</td></tr>`;
   }
 }
@@ -1717,6 +1770,48 @@ function openLightbox(url) {
   document.getElementById('lightboxOverlay').classList.add('open');
 }
 function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
+
+// ========== MY PROFILE (ชื่อที่แสดง / Avatar Emoji / UserID — แก้ไขเองได้) ==========
+const AVATAR_EMOJIS = ['🙂','😎','🫡','😊','🧑‍🌾','👩‍🌾','🧑‍💼','👩‍💼','🐱','🐶','🦊','🐻','🌟','🔥','💪','👑'];
+function renderNavIdentity() {
+  if (!profile) return;
+  document.getElementById('navUserName').textContent = `${profile.avatar_emoji || '🙂'} ${profile.display_name}`;
+}
+function openMyProfile() {
+  if (!profile) return;
+  document.getElementById('mpDisplayName').value = profile.display_name || '';
+  document.getElementById('mpUserId').value = profile.user_id || '';
+  document.getElementById('mpErr').textContent = '';
+  document.getElementById('avatarEmojiChips').innerHTML = AVATAR_EMOJIS.map(e =>
+    `<div class="ratio-chip ${e===(profile.avatar_emoji||'🙂')?'active':''}" style="font-size:20px;padding:6px 10px" data-emoji="${e}" onclick="pickAvatarEmoji('${e}')">${e}</div>`
+  ).join('');
+  document.getElementById('myProfileModal').classList.add('open');
+}
+let pendingAvatarEmoji = null;
+function pickAvatarEmoji(e) {
+  pendingAvatarEmoji = e;
+  document.querySelectorAll('#avatarEmojiChips .ratio-chip').forEach(c => c.classList.toggle('active', c.getAttribute('data-emoji') === e));
+}
+function closeMyProfile() { document.getElementById('myProfileModal').classList.remove('open'); pendingAvatarEmoji = null; }
+async function saveMyProfile() {
+  const display_name = document.getElementById('mpDisplayName').value.trim();
+  const user_id = document.getElementById('mpUserId').value.trim() || null;
+  const errEl = document.getElementById('mpErr');
+  if (!display_name) { errEl.textContent = 'กรอกชื่อที่แสดง'; return; }
+  const payload = { display_name };
+  if (pendingAvatarEmoji) payload.avatar_emoji = pendingAvatarEmoji;
+  if (user_id !== profile.user_id) payload.user_id = user_id;
+  const { error } = await sb.from('profiles').update(payload).eq('id', session.user.id);
+  if (error) {
+    errEl.textContent = error.message.includes('duplicate') ? 'UserID นี้มีคนใช้แล้ว' : error.message;
+    return;
+  }
+  profile = { ...profile, ...payload };
+  renderNavIdentity();
+  closeMyProfile();
+  showToast('✅ บันทึกโปรไฟล์แล้ว');
+}
+document.getElementById('myProfileModal').addEventListener('click', function(e) { if(e.target===this) closeMyProfile(); });
 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
 let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3' };
@@ -1876,7 +1971,7 @@ function handleScannedBarcode(code) {
   filterProducts(code);
   // auto-add if exact match
   const p = demoProducts.find(x => x.barcode === code);
-  if (p && totalStock(p) > 0) {
+  if (p) {
     setTimeout(() => {
       addToCart(p.sku);
       document.getElementById('posSearch').value = '';
@@ -1887,7 +1982,7 @@ function handleScannedBarcode(code) {
   } else {
     setTimeout(() => {
       closeScanner();
-      showToast(p ? `📷 ${p.name} — สินค้าหมด` : `📷 Barcode: ${code} — ไม่พบสินค้า`);
+      showToast(`📷 Barcode: ${code} — ไม่พบสินค้า`);
     }, 800);
   }
 }
@@ -1946,12 +2041,14 @@ function addBySearch(val) {
 function renderProducts(list) {
   document.getElementById('productGrid').innerHTML = list.map(p => {
     const stock = totalStock(p);
+    // ไม่ล็อกการขายตอนสต็อกในระบบเป็น 0 — หน้างานอาจยังมีของขาย (นับสต็อกผิดได้) จึงให้กดขายต่อได้เสมอ
+    // แต่โชว์เตือนชัดเจนว่า "ระบบว่าหมด" ไว้ก่อน แล้วไปบันทึกเป็นความคลาดเคลื่อนให้ผู้จัดการตรวจสอบทีหลัง
     return `
-    <div class="product-card ${stock===0?'out-of-stock':''}" onclick="addToCart('${p.sku}')">
+    <div class="product-card ${stock===0?'stock-warn':''}" onclick="addToCart('${p.sku}')">
       <div class="pc-img">${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div>
       <div class="pc-name">${p.name}</div>
       <div class="pc-price">฿${p.price}</div>
-      <div class="pc-stock ${stock<=p.safetyStock&&stock>0?'low':''}">${stock===0?'หมดแล้ว':stock<=p.safetyStock?`⚠️ เหลือ ${stock}`:`${stock} ชิ้น`}</div>
+      <div class="pc-stock ${stock<=p.safetyStock&&stock>0?'low':''}">${stock===0?'⛔ ระบบว่าหมด (กดขายได้ถ้ามีจริง)':stock<=p.safetyStock?`⚠️ เหลือ ${stock}`:`${stock} ชิ้น`}</div>
     </div>`;
   }).join('');
 }
@@ -1965,9 +2062,10 @@ function handleScanEnter(e) { if(e.key==='Enter') addBySearch(e.target.value); }
 
 function addToCart(sku) {
   const p = demoProducts.find(x => x.sku === sku);
-  if (!p || totalStock(p) === 0) return;
+  if (!p) return;
+  // ไม่ล็อกตามสต็อกในระบบ (ดู renderProducts ด้านบน) — ปล่อยให้กดขายต่อได้แม้ระบบว่าหมด
   const existing = cart.find(c => c.sku === sku);
-  if (existing) { if (existing.qty < totalStock(p)) existing.qty++; }
+  if (existing) existing.qty++;
   else cart.push({ sku: p.sku, barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
   renderCart();
   showToast(`+ ${p.name}`);
@@ -1985,10 +2083,8 @@ function changeQty(sku, delta) {
 function setQty(sku, val) {
   const item = cart.find(c => c.sku === sku);
   if (!item) return;
-  const p = demoProducts.find(x => x.sku === sku);
+  // ไม่ล็อกจำนวนตามสต็อกในระบบ — ดู addToCart ด้านบน
   let qty = parseInt(val) || 0;
-  const max = p ? totalStock(p) : qty;
-  if (qty > max) { qty = max; showToast(`⚠️ สต็อกมีแค่ ${max} ชิ้น`); }
   if (qty <= 0) { cart = cart.filter(c => c.sku !== sku); }
   else { item.qty = qty; }
   renderCart();
@@ -2355,12 +2451,12 @@ async function renderReport() {
 // ========== SALE TICKETS (ประวัติการขายแบบบิล พร้อมรายละเอียด FIFO cost ต่อชิ้น) ==========
 async function renderSalesTickets() {
   const { data: tickets } = await sb.from('sales')
-    .select('id, total, profit, sold_at, sold_by, profiles(display_name)')
+    .select('id, total, profit, sold_at, sold_by, sold_by_name')
     .order('sold_at', { ascending: false }).limit(50);
   document.getElementById('salesTicketBody').innerHTML = (tickets && tickets.length) ? tickets.map(t => `
     <tr style="cursor:pointer" onclick="openTicketDetail('${t.id}')">
       <td style="font-size:12px">${new Date(t.sold_at).toLocaleString('th-TH')}</td>
-      <td>${t.profiles ? t.profiles.display_name : '—'}</td>
+      <td>${t.sold_by_name || '—'}</td>
       <td id="ticketCount-${t.id}">…</td>
       <td>฿${Number(t.total).toFixed(2)}</td>
       <td style="color:var(--accent);font-weight:700">฿${Number(t.profit).toFixed(2)}</td>
@@ -2377,12 +2473,12 @@ async function renderSalesTickets() {
 }
 
 async function openTicketDetail(saleId) {
-  const { data: sale } = await sb.from('sales').select('*, profiles(display_name)').eq('id', saleId).single();
+  const { data: sale } = await sb.from('sales').select('*').eq('id', saleId).single();
   const { data: items } = await sb.from('sale_items').select('*').eq('sale_id', saleId);
   if (!sale) return;
   document.getElementById('ticketId').textContent = '#' + saleId.slice(0,8);
   document.getElementById('ticketMeta').textContent =
-    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.profiles ? sale.profiles.display_name : '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
+    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
   document.getElementById('ticketItemsBody').innerHTML = (items||[]).map(it => `
     <tr>
       <td>${it.name}</td>
@@ -2681,12 +2777,20 @@ async function doBootstrap() {
 }
 
 async function doLogin() {
-  const email = document.getElementById('liEmail').value.trim();
+  const idOrEmail = document.getElementById('liEmail').value.trim();
   const password = document.getElementById('liPassword').value;
   const errEl = document.getElementById('liErr');
   errEl.textContent = '';
+  let email = idOrEmail;
+  if (idOrEmail && !idOrEmail.includes('@')) {
+    // ไม่ใช่รูปแบบอีเมล — ถือว่าเป็น UserID แล้วหา email ที่ผูกไว้ก่อน
+    // (Supabase Auth ล็อกอินด้วย email เท่านั้น ฝั่ง UserID จึงเป็นแค่ alias ไปหา email จริง)
+    const { data: foundEmail, error: lookupErr } = await sb.rpc('email_for_user_id', { p_user_id: idOrEmail });
+    if (lookupErr || !foundEmail) { errEl.textContent = 'ไม่พบ UserID นี้'; return; }
+    email = foundEmail;
+  }
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { errEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'; return; }
+  if (error) { errEl.textContent = 'UserID/อีเมล หรือรหัสผ่านไม่ถูกต้อง'; return; }
   await onAuthed();
 }
 
@@ -2725,7 +2829,7 @@ function focusPosSearchIfActive() {
 function applyOfflineFallback(cached) {
   profile = cached.profile; perms = cached.perms; isAdmin = cached.isAdmin; demoProducts = cached.products;
   showToast('⚠️ ออฟไลน์ — ใช้ข้อมูลล่าสุดที่บันทึกไว้ (ขายของ/sync ใหม่ต้องรอมีเน็ต)');
-  document.getElementById('navUserName').textContent = profile.display_name;
+  renderNavIdentity();
   document.getElementById('navRoleChip').textContent = (profile.roles && profile.roles.name) || (isAdmin ? 'Admins' : '—');
   applyPermissionsToNav();
   hideAuthOverlay();
@@ -2768,7 +2872,7 @@ async function onAuthed() {
     return;
   }
 
-  document.getElementById('navUserName').textContent = profile.display_name;
+  renderNavIdentity();
   document.getElementById('navRoleChip').textContent = (profile.roles && profile.roles.name) || (isAdmin ? 'Admins' : '—');
   applyPermissionsToNav();
 
@@ -2797,7 +2901,7 @@ async function renderUsers() {
   const { data: users } = await sb.from('profiles').select('*, roles(name)').order('created_at');
   document.getElementById('usersTableBody').innerHTML = (users || []).map(u => `
     <tr>
-      <td><strong>${u.display_name}</strong>${u.id === session.user.id ? ' <span style="color:var(--text2);font-size:11px">(คุณ)</span>' : ''}</td>
+      <td>${u.avatar_emoji || '🙂'} <strong>${u.display_name}</strong>${u.id === session.user.id ? ' <span style="color:var(--text2);font-size:11px">(คุณ)</span>' : ''}${u.user_id ? `<div style="font-size:11px;color:var(--text2)">@${u.user_id}</div>` : ''}</td>
       <td>
         <select class="form-input" style="padding:5px 8px;font-size:12px;width:auto" onchange="changeUserRole('${u.id}', this.value)"
           ${u.id === session.user.id ? 'disabled title="เปลี่ยน role ตัวเองไม่ได้ ให้แอดมินคนอื่นเปลี่ยนให้"' : ''}>
