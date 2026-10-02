@@ -201,82 +201,6 @@ body {
 }
 .cam-btn:hover { border-color: var(--accent3); background: #fff9e6; }
 
-/* ===== RESPONSIVE MOBILE ===== */
-@media (max-width: 768px) {
-  /* Hide desktop top nav tabs, show bottom nav */
-  .nav-tabs { display: none; }
-  .nav-right .nav-time { display: none; }
-  .bottom-nav { display: block; }
-
-  /* Pages take full width, add bottom padding for nav */
-  .pages { padding-bottom: 60px; }
-
-  /* POS: stack vertically on mobile */
-  #page-pos { flex-direction: column; }
-
-  .pos-left {
-    width: 100%;
-    max-height: 55vh;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-
-  /* Fewer columns on small screen */
-  .product-grid {
-    grid-template-columns: repeat(3, 1fr);
-    padding: 8px;
-    gap: 6px;
-  }
-
-  /* Cart items takes remaining space, payment panel sits full-width below it */
-  .pos-cart {
-    flex: 1;
-    min-height: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-  .pos-payment {
-    width: 100%;
-    max-width: none;
-    flex-shrink: 0;
-    padding: 12px 16px;
-  }
-  .pos-payment-resizer { display: none; }
-  .sum-total { font-size: 22px; padding: 10px 14px; }
-  .btn-pay { padding: 14px; font-size: 17px; }
-  .pay-input { font-size: 18px; padding: 10px 14px; }
-  .change-row { font-size: 15px; padding: 10px 14px; }
-
-  /* Cart items smaller on mobile */
-  .cart-item { padding: 10px 12px; gap: 10px; }
-  .ci-emoji { font-size: 22px; }
-  .ci-name { font-size: 14px; }
-  .ci-qty { font-size: 17px; }
-  .ci-btn { width: 30px; height: 30px; font-size: 16px; }
-  .ci-price { font-size: 15px; min-width: 60px; }
-
-  /* Inventory table scroll */
-  .inv-table-wrap { overflow-x: auto; }
-  .inv-stats { flex-wrap: wrap; }
-  .stat-card { min-width: calc(50% - 6px); }
-
-  /* Master grid 2 cols */
-  .master-content { gap: 10px; }
-  .master-card { width: calc(50% - 5px); }
-
-  /* Report 1 col */
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-  .report-2col { grid-template-columns: 1fr; }
-
-  /* Architecture page scroll friendly */
-  #page-arch { padding: 16px; }
-  .arch-diagram { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
-  .arch-arrow { transform: rotate(90deg); }
-  .sheets-grid { grid-template-columns: repeat(2, 1fr); }
-  .flow-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
 /* Pages */
 .pages { flex: 1; overflow: hidden; display: flex; }
 .page { display: none; width: 100%; height: 100%; overflow: hidden; }
@@ -360,11 +284,12 @@ body {
 #page-pos { flex-direction: row; overflow: hidden; }
 
 /* LEFT — Search + Keypad (collapsible) + Product Grid */
+/* สัดส่วน default ของ 3 คอลัมน์ POS คือ 20:40:30 (ซ้าย:กลาง:ขวา) ผ่าน flex-grow ratio —
+   ลาก resizer แล้วจะสลับคอลัมน์นั้นเป็นความกว้างตายตัว (flex:none) แทน ดู setupPosResizer/setupPosPaymentResizer */
 .pos-left {
-  width: 420px;
-  min-width: 260px;
+  flex: 2 1 0;
+  min-width: 220px;
   max-width: 70vw;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -483,7 +408,7 @@ body {
 
 /* MIDDLE — Cart items (ยาวลงมาเป็นแนวตั้ง เห็นได้หลายรายการพร้อมกัน) */
 .pos-cart {
-  flex: 1;
+  flex: 4 1 0;
   min-width: 0;
   background: var(--surface);
   display: flex;
@@ -494,17 +419,18 @@ body {
 
 /* RIGHT — Payment (เงิน/เงินทอน แยกเป็นคอลัมน์ของตัวเอง ไม่บังรายการสินค้า) */
 .pos-payment {
-  width: 400px;
-  min-width: 300px;
+  flex: 3 1 0;
+  min-width: 260px;
   max-width: 55vw;
-  flex-shrink: 0;
   background: var(--surface2);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  padding: 18px 24px;
+  overflow-x: hidden;
+  padding: 16px 18px;
   position: relative;
 }
+.pos-payment * { min-width: 0; }
 .pos-payment-resizer {
   position: absolute; top: 0; left: -4px; bottom: 0; width: 9px;
   cursor: col-resize; z-index: 5; touch-action: none;
@@ -512,10 +438,10 @@ body {
 .pos-payment-resizer::after { content:''; position:absolute; top:0; bottom:0; left:3px; width:3px; background:var(--border); border-radius:2px; }
 .pos-payment-resizer:hover::after, .pos-payment-resizer.dragging::after { background: var(--accent2); }
 .cart-header {
-  padding: 18px 24px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
   font-weight: 700;
-  font-size: 18px;
+  font-size: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -525,76 +451,81 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 14px 20px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 .cart-item {
   background: var(--surface2);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 14px 18px;
+  border-radius: 12px;
+  padding: 9px 12px;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
 }
-.ci-thumb { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; cursor: zoom-in; }
+.ci-thumb { width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 20px; overflow: hidden; cursor: zoom-in; }
 .ci-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.ci-name { flex: 1; min-width: 0; font-size: 17px; font-weight: 600; line-height: 1.3; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; overflow: hidden; }
+.ci-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; line-height: 1.3; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; }
 .ci-name .ci-name-text { overflow: hidden; text-overflow: ellipsis; }
-.ci-name .ci-unit-price { font-size: 15px; color: var(--text2); font-weight: 500; flex-shrink: 0; }
-.ci-qty-row { display: flex; align-items: center; gap: 10px; }
+.ci-name .ci-unit-price { font-size: 12px; color: var(--text2); font-weight: 500; flex-shrink: 0; }
+.ci-qty-row { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ci-btn {
-  width: 36px; height: 36px;
-  border-radius: 10px;
+  width: 28px; height: 28px;
+  border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--surface);
   cursor: pointer;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   display: flex; align-items: center; justify-content: center;
   transition: all 0.1s;
+  flex-shrink: 0;
 }
 .ci-btn:hover { border-color: var(--accent2); color: var(--accent); background: #e8f4e8; }
 .ci-qty-input {
-  font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 700; width: 48px; text-align: center;
-  border: 1.5px solid var(--border); border-radius: 8px; background: var(--surface); padding: 6px 2px; color: var(--text);
+  font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 700; width: 36px; text-align: center;
+  border: 1.5px solid var(--border); border-radius: 7px; background: var(--surface); padding: 5px 2px; color: var(--text);
 }
 .ci-qty-input:focus { border-color: var(--accent2); outline: none; }
-.ci-price { font-size: 18px; font-weight: 700; color: var(--accent); min-width: 80px; text-align: right; font-family: 'IBM Plex Mono', monospace; }
-.ci-del { color: var(--red); font-size: 20px; cursor: pointer; padding: 4px 6px; opacity: 0.6; }
+.ci-price { font-size: 14px; font-weight: 700; color: var(--accent); min-width: 54px; text-align: right; font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+.ci-del { color: var(--red); font-size: 16px; cursor: pointer; padding: 4px 4px; opacity: 0.6; flex-shrink: 0; }
 .ci-del:hover { opacity: 1; }
 
-.sum-row { display: flex; justify-content: space-between; font-size: 15px; color: var(--text2); margin-bottom: 8px; }
+.sum-row { display: flex; justify-content: space-between; font-size: 14px; color: var(--text2); margin-bottom: 8px; }
 .sum-total {
-  display: flex; justify-content: space-between;
-  font-size: 28px; font-weight: 700; color: var(--accent);
-  margin: 12px 0;
-  padding: 14px 18px;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 22px; font-weight: 700; color: var(--accent);
+  margin: 10px 0;
+  padding: 12px 14px;
   background: #e8f4e8;
   border-radius: 12px;
+  overflow: hidden;
 }
-.sum-total span:last-child { font-family: 'IBM Plex Mono', monospace; }
-.cash-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.sum-total span:last-child { font-family: 'IBM Plex Mono', monospace; overflow: hidden; text-overflow: ellipsis; }
+/* 3 ปุ่มต่อแถว (ไม่ใช่ 5) กันล้นตอนคอลัมน์แคบ — เลยได้ 1000/500/100 แล้ว 50/20/10 แล้ว 5/2/1 */
+.cash-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px; }
 .cash-btn {
   border: 1.5px solid transparent; border-radius: 10px;
-  padding: 12px 4px; font-size: 17px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  padding: 10px 4px; font-size: 14px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
   cursor: pointer; transition: all 0.1s;
-  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 5px;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 4px;
+  overflow: hidden;
 }
-.cash-btn .cash-icon { font-size: 17px; line-height: 1; }
+.cash-btn .cash-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
 .cash-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .cash-btn:active { transform: scale(0.94); }
-.pay-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
-.pay-label { font-size: 15px; font-weight: 600; color: var(--text2); white-space: nowrap; }
+.pay-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
+.pay-label { font-size: 14px; font-weight: 600; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
 .pay-input {
   flex: 1;
+  width: 0; /* กับ flex:1 แล้วบังคับให้หดตามคอลัมน์ได้จริง ไม่ดันล้นออกไป */
   background: var(--surface);
   border: 2px solid var(--border);
   border-radius: 10px;
-  padding: 12px 16px;
-  font-size: 22px;
+  padding: 10px 12px;
+  font-size: 18px;
   font-family: 'IBM Plex Mono', monospace;
   font-weight: 700;
   outline: none;
@@ -606,20 +537,21 @@ body {
   background: #fff9e6;
   border: 1.5px solid #fde68a;
   border-radius: 10px;
-  padding: 12px 18px;
+  padding: 10px 14px;
   display: flex; justify-content: space-between; align-items: center;
-  font-weight: 700; font-size: 18px; color: #92400e;
+  font-weight: 700; font-size: 16px; color: #92400e;
   margin-bottom: 12px;
+  overflow: hidden;
 }
-.change-row span:last-child { font-family: 'IBM Plex Mono', monospace; font-size: 30px; }
+.change-row span:last-child { font-family: 'IBM Plex Mono', monospace; font-size: 22px; overflow: hidden; text-overflow: ellipsis; }
 .btn-pay {
   width: 100%;
   background: var(--accent);
   color: #fff;
   border: none;
   border-radius: 12px;
-  padding: 18px;
-  font-size: 20px;
+  padding: 16px;
+  font-size: 18px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
@@ -902,6 +834,89 @@ body {
   .no-print { display: none !important; }
   .bb-grid { padding: 0; max-width: none; }
   .bb-label { break-inside: avoid; padding-block: 20px; }
+}
+
+/* ===== RESPONSIVE MOBILE =====
+   ย้ายมาไว้ท้ายสุดของ <style> โดยตั้งใจ — เดิม block นี้อยู่เกือบบนสุดของไฟล์ ทำให้กฎ
+   desktop (ไม่มี @media) ที่เขียนไว้ "หลัง" block นี้ชนะเสมอไม่ว่าหน้าจอจะแคบแค่ไหน
+   (CSS ตัดสินด้วยลำดับประกาศเมื่อ specificity เท่ากัน ไม่ใช่แค่ media query match หรือเปล่า)
+   เช่น #page-pos{flex-direction:row} ที่นิยามทีหลัง เลยทับ column ของมือถือตลอด —
+   ของแบบนี้ต้องอยู่ท้ายไฟล์เสมอถึงจะชนะกฎ desktop ได้จริงตามที่ตั้งใจ */
+@media (max-width: 768px) {
+  /* Hide desktop top nav tabs, show bottom nav */
+  .nav-tabs { display: none; }
+  .nav-right .nav-time { display: none; }
+  .bottom-nav { display: block; }
+
+  /* Pages take full width, add bottom padding for nav */
+  .pages { padding-bottom: 60px; }
+
+  /* POS: stack vertically on mobile */
+  #page-pos { flex-direction: column; }
+
+  .pos-left {
+    width: 100%;
+    max-height: 55vh;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  /* Fewer columns on small screen */
+  .product-grid {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 8px;
+    gap: 6px;
+  }
+
+  /* Cart items takes remaining space, payment panel sits full-width below it */
+  .pos-cart {
+    flex: 1 1 auto;
+    min-height: 0;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .pos-payment {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    padding: 12px 16px;
+  }
+  .pos-payment-resizer { display: none; }
+  .sum-total { font-size: 20px; padding: 10px 14px; }
+  .btn-pay { padding: 14px; font-size: 17px; }
+  .pay-input { font-size: 16px; padding: 10px 10px; }
+  .change-row { font-size: 14px; padding: 10px 12px; }
+  .change-row span:last-child { font-size: 19px; }
+
+  /* Cart items smaller on mobile */
+  .cart-item { padding: 8px 10px; gap: 8px; }
+  .ci-thumb { width: 32px; height: 32px; font-size: 18px; }
+  .ci-name { font-size: 13px; }
+  .ci-name .ci-unit-price { font-size: 11px; }
+  .ci-btn { width: 26px; height: 26px; font-size: 14px; }
+  .ci-qty-input { width: 32px; font-size: 13px; }
+  .ci-price { font-size: 13px; min-width: 46px; }
+
+  /* Inventory table scroll */
+  .inv-table-wrap { overflow-x: auto; }
+  .inv-stats { flex-wrap: wrap; }
+  .stat-card { min-width: calc(50% - 6px); }
+
+  /* Master grid 2 cols */
+  .master-content { gap: 10px; }
+  .master-card { width: calc(50% - 5px); }
+
+  /* Report 1 col */
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .report-2col { grid-template-columns: 1fr; }
+
+  /* Architecture page scroll friendly */
+  #page-arch { padding: 16px; }
+  .arch-diagram { grid-template-columns: 1fr; padding: 16px; gap: 12px; }
+  .arch-arrow { transform: rotate(90deg); }
+  .sheets-grid { grid-template-columns: repeat(2, 1fr); }
+  .flow-grid { grid-template-columns: repeat(3, 1fr); }
 }
 </style>
 </head>
@@ -3063,17 +3078,20 @@ async function createStaffUser() {
 }
 
 // ========== POS LEFT PANEL RESIZER ==========
+// Default ความกว้างทั้ง 3 คอลัมน์มาจาก flex-grow ratio ใน CSS (20:40:30) — ลากปรับเองครั้งแรก
+// ถึงจะสลับคอลัมน์นั้นมาเป็น flex:none + width ตายตัวแทน (แล้วจำไว้ด้วย localStorage)
+// ชื่อ key เปลี่ยนเป็น v2 เพื่อไม่ให้ค่าความกว้างแคบๆที่เคยลากจำไว้ก่อนหน้านี้ (ตอนยังเป็น column เดียว) ยังค้างอยู่
 (function setupPosResizer() {
   const left = document.getElementById('posLeft');
   const handle = document.getElementById('posResizer');
-  const saved = parseInt(localStorage.getItem('mm_pos_left_width')) || null;
-  if (saved) left.style.width = saved + 'px';
+  const saved = parseInt(localStorage.getItem('mm_pos_left_width_v2')) || null;
+  if (saved) left.style.flex = `0 0 ${saved}px`;
 
   let dragging = false;
   function onMove(clientX) {
     const rect = left.parentElement.getBoundingClientRect();
-    const w = Math.min(Math.max(clientX - rect.left, 260), rect.width * 0.7);
-    left.style.width = w + 'px';
+    const w = Math.min(Math.max(clientX - rect.left, 220), rect.width * 0.7);
+    left.style.flex = `0 0 ${w}px`;
   }
   handle.addEventListener('pointerdown', e => {
     dragging = true;
@@ -3085,7 +3103,7 @@ async function createStaffUser() {
     if (!dragging) return;
     dragging = false;
     handle.classList.remove('dragging');
-    try { localStorage.setItem('mm_pos_left_width', parseInt(left.style.width)); } catch (e) {}
+    try { localStorage.setItem('mm_pos_left_width_v2', parseInt(left.getBoundingClientRect().width)); } catch (e) {}
   });
 })();
 
@@ -3093,14 +3111,14 @@ async function createStaffUser() {
 (function setupPosPaymentResizer() {
   const panel = document.getElementById('posPayment');
   const handle = document.getElementById('posPaymentResizer');
-  const saved = parseInt(localStorage.getItem('mm_pos_payment_width')) || null;
-  if (saved) panel.style.width = saved + 'px';
+  const saved = parseInt(localStorage.getItem('mm_pos_payment_width_v2')) || null;
+  if (saved) panel.style.flex = `0 0 ${saved}px`;
 
   let dragging = false;
   function onMove(clientX) {
     const rect = panel.parentElement.getBoundingClientRect();
-    const w = Math.min(Math.max(rect.right - clientX, 300), rect.width * 0.55);
-    panel.style.width = w + 'px';
+    const w = Math.min(Math.max(rect.right - clientX, 260), rect.width * 0.55);
+    panel.style.flex = `0 0 ${w}px`;
   }
   handle.addEventListener('pointerdown', e => {
     dragging = true;
@@ -3112,7 +3130,7 @@ async function createStaffUser() {
     if (!dragging) return;
     dragging = false;
     handle.classList.remove('dragging');
-    try { localStorage.setItem('mm_pos_payment_width', parseInt(panel.style.width)); } catch (e) {}
+    try { localStorage.setItem('mm_pos_payment_width_v2', parseInt(panel.getBoundingClientRect().width)); } catch (e) {}
   });
 })();
 
