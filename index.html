@@ -451,8 +451,8 @@ body {
 }
 .product-card:hover { border-color: var(--accent2); transform: translateY(-2px); box-shadow: var(--shadow); }
 .product-card:active { transform: scale(0.96); }
-.product-card.out-of-stock { opacity: 0.38; pointer-events: none; }
-.pc-img { font-size: 34px; margin-bottom: 5px; aspect-ratio: 2 / 3; width: 100%; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; overflow: hidden; }
+.product-card.stock-warn { border-color: #f5b8b3; background: #fff8f7; }
+.pc-img { font-size: 34px; margin-bottom: 5px; aspect-ratio: var(--pc-ratio, 2 / 3); width: 100%; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; overflow: hidden; }
 .pc-img img { width: 100%; height: 100%; object-fit: cover; }
 .pc-name { font-size: 13.5px; font-weight: 700; line-height: 1.3; margin-bottom: 4px; color: var(--text); }
 .pc-price { font-size: 16px; font-weight: 700; color: var(--accent); }
@@ -497,7 +497,9 @@ body {
 }
 .ci-thumb { width: 48px; height: 48px; border-radius: 10px; flex-shrink: 0; background: var(--surface); display: flex; align-items: center; justify-content: center; font-size: 26px; overflow: hidden; cursor: zoom-in; }
 .ci-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.ci-name { flex: 1; font-size: 16px; font-weight: 600; line-height: 1.4; }
+.ci-name { flex: 1; min-width: 0; font-size: 17px; font-weight: 600; line-height: 1.3; display: flex; align-items: baseline; gap: 8px; white-space: nowrap; overflow: hidden; }
+.ci-name .ci-name-text { overflow: hidden; text-overflow: ellipsis; }
+.ci-name .ci-unit-price { font-size: 15px; color: var(--text2); font-weight: 500; flex-shrink: 0; }
 .ci-qty-row { display: flex; align-items: center; gap: 10px; }
 .ci-btn {
   width: 36px; height: 36px;
@@ -548,11 +550,11 @@ body {
 .cash-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
 .cash-btn {
   border: 1.5px solid transparent; border-radius: 10px;
-  padding: 10px 4px; font-size: 13px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
+  padding: 12px 4px; font-size: 17px; font-weight: 700; font-family: 'IBM Plex Mono', monospace;
   cursor: pointer; transition: all 0.1s;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 5px;
 }
-.cash-btn .cash-icon { font-size: 15px; line-height: 1; }
+.cash-btn .cash-icon { font-size: 17px; line-height: 1; }
 .cash-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .cash-btn:active { transform: scale(0.94); }
 .pay-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
@@ -661,6 +663,15 @@ body {
 .badge-low { background: #fff3e0; color: #e65100; }
 .badge-out { background: #fdecea; color: var(--red); }
 .barcode-mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text2); }
+
+/* ===== STOCK LOT DETAIL MODAL ===== */
+.lot-row { display: flex; align-items: center; gap: 14px; background: var(--surface2); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+.lot-row.depleted { opacity: 0.55; }
+.lot-info { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; font-size: 13px; }
+.lot-info .lot-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.lot-info .lot-val { font-weight: 700; font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+.lot-active-tag { background: var(--green); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.lot-depleted-tag { background: var(--border); color: var(--text2); font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
 
 /* ===== MASTER DATA PAGE ===== */
 #page-master {
@@ -807,11 +818,19 @@ body {
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 /* ===== MANAGER PAGE ===== */
-#page-manager, #page-users, #page-settings, #page-manualbc { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
+#page-manager, #page-users, #page-settings, #page-manualbc, #page-permissions { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
 
 /* ===== SETTINGS PAGE ===== */
+.settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
+@media (max-width: 768px) { .settings-grid { grid-template-columns: 1fr; } }
 .settings-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .settings-row:last-child { border-bottom: none; }
+.ratio-chip-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ratio-chip {
+  background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--text2);
+}
+.ratio-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .upload-thumb { width: 56px; height: 56px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 22px; overflow: hidden; flex-shrink: 0; }
 .upload-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .navorder-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface2); border-radius: 10px; }
@@ -866,7 +885,7 @@ body {
   <div class="nav-tabs" id="navTabs"></div>
   <div class="nav-right">
     <span class="role-chip" id="navRoleChip">—</span>
-    <span id="navUserName">—</span>
+    <span id="navUserName" style="cursor:pointer" onclick="openMyProfile()" title="แก้ไขโปรไฟล์ของฉัน">—</span>
     <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="doLogout()">ออกจากระบบ</button>
     <span class="nav-time" id="clock">--:--:--</span>
   </div>
@@ -898,7 +917,7 @@ body {
     </div>
     <div id="authLoginForm" style="display:none">
       <div class="auth-title">เข้าสู่ระบบ</div>
-      <input class="form-input" id="liEmail" type="email" placeholder="อีเมล">
+      <input class="form-input" id="liEmail" placeholder="UserID หรือ อีเมล">
       <input class="form-input" id="liPassword" type="password" placeholder="รหัสผ่าน" style="margin-top:8px">
       <button class="btn btn-primary" style="width:100%;margin-top:14px;padding:12px" onclick="doLogin()">เข้าสู่ระบบ</button>
       <div class="auth-err" id="liErr"></div>
@@ -1234,6 +1253,12 @@ body {
   </div>
 
   <div class="report-card">
+    <div class="report-card-title">⚠️ ความคลาดเคลื่อนสต็อก (ขายตอนระบบว่าหมด)</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">รายการที่หน้างานขายไปแต่ระบบนับว่าของหมดแล้ว — ตรวจนับของจริงแล้วกด "รับของเข้าสต็อก" เพื่อปรับให้ตรง จากนั้นกดล้างรายการนี้</div>
+    <div id="discrepancyList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div>
+
+  <div class="report-card">
     <div class="report-card-title">📝 ประวัติการปรับราคา</div>
     <div class="inv-table-wrap" style="padding:0">
       <table class="inv-table">
@@ -1274,49 +1299,72 @@ body {
   </div>
 </div>
 
+<!-- ===== ROLE PERMISSION MATRIX (Admins เท่านั้น) ===== -->
+<div class="page" id="page-permissions">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">🔐 สิทธิ์การเข้าถึงของแต่ละ Role</div>
+  <div style="font-size:14px; color:var(--text2)">ติ๊กถูกเพื่อเปิด/ปิดสิทธิ์ — มีผลทันทีกับทุกคนในแต่ละ Role (Admins ไม่ถูกจำกัดโดยตารางนี้)</div>
+
+  <div class="report-card">
+    <div class="inv-table-wrap" style="padding:0">
+      <table class="inv-table" id="permMatrixTable">
+        <thead><tr id="permMatrixHead"></tr></thead>
+        <tbody id="permMatrixBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- ===== SETTINGS (Admins เท่านั้น) ===== -->
 <div class="page" id="page-settings">
   <div style="font-size:22px; font-weight:700; color:var(--accent)">⚙️ ตั้งค่าระบบ</div>
   <div style="font-size:14px; color:var(--text2)">ชื่อร้าน โลโก้ สีแถบบน และลำดับเมนู — ใช้ร่วมกันทุกเครื่อง</div>
 
-  <div class="report-card">
-    <div class="report-card-title">แบรนด์ร้าน</div>
-    <div class="settings-row">
-      <div class="upload-thumb" id="logoPreview">🏪</div>
-      <div style="flex:1">
-        <label class="form-label">ชื่อร้าน</label>
-        <input class="form-input" id="stShopName" placeholder="เช่น เหมืองทอง มินิมาร์ท (Mueang Thong Minimart)">
+  <div class="settings-grid">
+    <div class="report-card">
+      <div class="report-card-title">แบรนด์ร้าน</div>
+      <div class="settings-row">
+        <div class="upload-thumb" id="logoPreview">🏪</div>
+        <div style="flex:1">
+          <label class="form-label">ชื่อร้าน</label>
+          <input class="form-input" id="stShopName" placeholder="เช่น เหมืองทอง มินิมาร์ท (Mueang Thong Minimart)">
+        </div>
       </div>
-    </div>
-    <div class="settings-row">
-      <div class="upload-thumb" id="logoPreview2">🖼️</div>
-      <div style="flex:1">
-        <label class="form-label">โลโก้ (แสดงมุมซ้ายบน)</label>
-        <input type="file" accept="image/*" class="form-input" id="stLogoFile" style="padding:7px" onchange="uploadBrandImage(this,'logo')">
+      <div class="settings-row">
+        <div class="upload-thumb" id="logoPreview2">🖼️</div>
+        <div style="flex:1">
+          <label class="form-label">โลโก้ (แสดงมุมซ้ายบน)</label>
+          <input type="file" accept="image/*" class="form-input" id="stLogoFile" style="padding:7px" onchange="uploadBrandImage(this,'logo')">
+        </div>
       </div>
-    </div>
-    <div class="settings-row">
-      <div class="upload-thumb" id="faviconPreview">🔖</div>
-      <div style="flex:1">
-        <label class="form-label">Icon แท็บเว็บ (Favicon)</label>
-        <input type="file" accept="image/*" class="form-input" id="stFaviconFile" style="padding:7px" onchange="uploadBrandImage(this,'favicon')">
+      <div class="settings-row">
+        <div class="upload-thumb" id="faviconPreview">🔖</div>
+        <div style="flex:1">
+          <label class="form-label">Icon แท็บเว็บ (Favicon)</label>
+          <input type="file" accept="image/*" class="form-input" id="stFaviconFile" style="padding:7px" onchange="uploadBrandImage(this,'favicon')">
+        </div>
       </div>
-    </div>
-    <div class="settings-row">
-      <div style="width:56px;text-align:center"><input type="color" id="stTopbarColor" style="width:48px;height:40px;border:none;cursor:pointer;background:none"></div>
-      <div style="flex:1">
-        <label class="form-label">สีแถบด้านบน</label>
-        <div style="font-size:12px;color:var(--text2)">เปลี่ยนสีหลักของทั้งแอป ไม่ใช่แค่แถบบน</div>
+      <div class="settings-row">
+        <div style="width:56px;text-align:center"><input type="color" id="stTopbarColor" style="width:48px;height:40px;border:none;cursor:pointer;background:none"></div>
+        <div style="flex:1">
+          <label class="form-label">สีแถบด้านบน</label>
+          <div style="font-size:12px;color:var(--text2)">เปลี่ยนสีหลักของทั้งแอป ไม่ใช่แค่แถบบน</div>
+        </div>
       </div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="saveShopSettings()">💾 บันทึกแบรนด์ร้าน</button>
+      <div class="auth-err" id="stErr"></div>
     </div>
-    <button class="btn btn-primary" style="margin-top:14px" onclick="saveShopSettings()">💾 บันทึกแบรนด์ร้าน</button>
-    <div class="auth-err" id="stErr"></div>
-  </div>
 
-  <div class="report-card">
-    <div class="report-card-title">ลำดับเมนูบนแถบด้านบน</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:10px">กดลูกศรเพื่อเลื่อนเมนูขึ้น/ลง — มีผลกับทุกคนทุกเครื่อง</div>
-    <div id="navOrderList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="report-card">
+      <div class="report-card-title">หน้า POS</div>
+      <div class="form-label" style="margin-bottom:8px">สัดส่วนรูปการ์ดสินค้า (กว้าง:สูง)</div>
+      <div class="ratio-chip-row" id="cardRatioChips"></div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-card-title">ลำดับเมนูบนแถบด้านบน</div>
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">กดลูกศรเพื่อเลื่อนเมนูขึ้น/ลง — มีผลกับทุกคนทุกเครื่อง</div>
+      <div id="navOrderList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
   </div>
 </div>
 
@@ -1355,6 +1403,7 @@ body {
         <input class="form-input" id="newBarcode" placeholder="กรอกหรือสแกน Barcode">
         <button class="btn btn-outline" onclick="lookupBarcode()">🔍 ค้นหา</button>
         <button class="btn btn-outline" id="genBarcodeBtn" onclick="genLocalBarcode()" title="สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดจากโรงงาน">🏷️ Manual Gen</button>
+        <button class="btn btn-outline" id="unlockBarcodeBtn" onclick="unlockBarcodeEdit()" style="display:none" title="แก้ไข Barcode (Admins/เจ้าของร้าน/ผู้จัดการร้านเท่านั้น)">🔓 แก้ไข</button>
       </div>
     </div>
     <div class="form-group">
@@ -1397,6 +1446,7 @@ body {
     <div class="modal-actions">
       <button class="btn btn-primary" style="flex:1" onclick="saveNewProduct()">💾 บันทึก</button>
       <button class="btn btn-outline" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn btn-outline" id="deleteProductBtn" style="display:none;color:var(--red);border-color:var(--red)" onclick="deleteProduct()">🗑️ ลบสินค้า</button>
     </div>
   </div>
 </div>
@@ -1427,6 +1477,41 @@ body {
   </div>
 </div>
 
+<!-- My Profile Modal (แก้ไขชื่อที่แสดง / Avatar / UserID ของตัวเอง) -->
+<div class="modal-overlay" id="myProfileModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">🙂 โปรไฟล์ของฉัน</div>
+    <div class="form-group">
+      <label class="form-label">Avatar (เลือก Emoji)</label>
+      <div class="ratio-chip-row" id="avatarEmojiChips"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">ชื่อที่แสดง</label>
+      <input class="form-input" id="mpDisplayName" placeholder="เช่น ข้าวตัง">
+    </div>
+    <div class="form-group">
+      <label class="form-label">UserID (ใช้ Login แทนอีเมลได้)</label>
+      <input class="form-input" id="mpUserId" placeholder="เช่น khaotang">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="saveMyProfile()">💾 บันทึก</button>
+      <button class="btn btn-outline" onclick="closeMyProfile()">ยกเลิก</button>
+    </div>
+    <div class="auth-err" id="mpErr"></div>
+  </div>
+</div>
+
+<!-- Stock Lot Detail Modal -->
+<div class="modal-overlay" id="stockModal">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-title" id="stockModalTitle">📦 รายละเอียด Lot สต็อก</div>
+    <div id="stockModalBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeStockModal()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Vendored locally (not loaded from a CDN) so the app still boots and the
@@ -1451,6 +1536,12 @@ let demoProducts = [];   // loaded from Supabase (products + product_lots) — s
 let cart = [];
 
 function can(permKey) { return isAdmin || !!perms[permKey]; }
+// ลบสินค้า / แก้ไข Barcode เป็นการกระทำที่กระทบข้อมูลย้อนหลังแรง เลยจำกัดไว้เฉพาะ
+// Admins / เจ้าของร้าน / ผู้จัดการร้าน เท่านั้น (เข้มกว่า permission key ทั่วไป)
+function canManageCritical() {
+  const roleName = (profile && profile.roles && profile.roles.name) || '';
+  return isAdmin || roleName === 'เจ้าของร้าน' || roleName === 'ผู้จัดการร้าน';
+}
 
 // ---- Stock is tracked as "lots" (ล็อตที่รับเข้าแต่ละครั้ง พร้อมต้นทุน ณ ตอนนั้น) ----
 // เวลาขาย ตัดจาก lot เก่าสุดก่อน (FIFO) — การตัดจริงเกิดบนเซิร์ฟเวอร์ผ่าน RPC `sell`
@@ -1463,18 +1554,18 @@ async function loadProducts() {
     sb.from('stock_snoozes').select('*'),
   ]);
   if (pErr) { showToast('⚠️ โหลดสินค้าไม่สำเร็จ: ' + pErr.message); return; }
-  const lotsByBarcode = {};
-  (lots || []).forEach(l => { (lotsByBarcode[l.barcode] ||= []).push({ id: l.id, qty: l.qty, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
+  const lotsBySku = {};
+  (lots || []).forEach(l => { (lotsBySku[l.sku] ||= []).push({ id: l.id, qty: l.qty, qtyReceived: l.qty_received, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
   snoozes = {};
-  (snoozeRows || []).forEach(s => { snoozes[s.barcode] = new Date(s.snoozed_until).getTime(); });
+  (snoozeRows || []).forEach(s => { snoozes[s.sku] = new Date(s.snoozed_until).getTime(); });
   demoProducts = (products || []).map(p => ({
-    barcode: p.barcode, name: p.name, brand: p.brand, cat: p.cat,
+    sku: p.sku, barcode: p.barcode, name: p.name, brand: p.brand, cat: p.cat,
     price: Number(p.price), emoji: p.emoji, safetyStock: p.safety_stock,
-    manualGen: p.manual_gen, imageUrl: p.image_url, lots: lotsByBarcode[p.barcode] || [],
+    manualGen: p.manual_gen, imageUrl: p.image_url, lots: lotsBySku[p.sku] || [],
   }));
 }
 
-let snoozes = {}; // { barcode: timestamp } — populated by loadProducts()
+let snoozes = {}; // { sku: timestamp } — populated by loadProducts()
 
 // ========== STOCK / LOT HELPERS ==========
 function totalStock(p) { return p.lots.reduce((s, l) => s + l.qty, 0); }
@@ -1485,25 +1576,30 @@ function avgCost(p) {
 }
 // ========== STOCK ALERT / SNOOZE ==========
 const SNOOZE_DAYS = 7;
-function isSnoozed(barcode) { return snoozes[barcode] && snoozes[barcode] > Date.now(); }
-async function markOrdered(barcode) {
+function isSnoozed(sku) { return snoozes[sku] && snoozes[sku] > Date.now(); }
+async function markOrdered(sku) {
   const until = new Date(Date.now() + SNOOZE_DAYS * 86400000).toISOString();
-  const { error } = await sb.from('stock_snoozes').upsert({ barcode, snoozed_until: until, snoozed_by: session.user.id });
+  const { error } = await sb.from('stock_snoozes').upsert({ sku, snoozed_until: until, snoozed_by: session.user.id });
   if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
-  snoozes[barcode] = Date.now() + SNOOZE_DAYS * 86400000;
+  snoozes[sku] = Date.now() + SNOOZE_DAYS * 86400000;
   showToast(`📦 บันทึกว่าสั่งของแล้ว จะเตือนอีกครั้งใน ${SNOOZE_DAYS} วัน`);
   renderManager();
 }
-async function remindAgain(barcode) {
-  const { error } = await sb.from('stock_snoozes').delete().eq('barcode', barcode);
+async function dismissDiscrepancy(id) {
+  const { error } = await sb.from('stock_discrepancies').delete().eq('id', id);
   if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
-  delete snoozes[barcode];
+  renderManager();
+}
+async function remindAgain(sku) {
+  const { error } = await sb.from('stock_snoozes').delete().eq('sku', sku);
+  if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
+  delete snoozes[sku];
   renderManager();
 }
 async function renderManager() {
   const low = demoProducts.filter(p => totalStock(p) <= p.safetyStock);
-  const active = low.filter(p => !isSnoozed(p.barcode));
-  const snoozed = low.filter(p => isSnoozed(p.barcode));
+  const active = low.filter(p => !isSnoozed(p.sku));
+  const snoozed = low.filter(p => isSnoozed(p.sku));
   const canResolve = can('manager_resolve_alert');
 
   const badges = [document.getElementById('navAlertBadge'), document.getElementById('navAlertBadgeMobile')];
@@ -1520,23 +1616,39 @@ async function renderManager() {
           <div class="alert-name">${p.name}</div>
           <div class="alert-sub">เหลือ ${totalStock(p)} ชิ้น (Safety Stock: ${p.safetyStock})</div>
         </div>
-        ${canResolve ? `<button class="btn btn-primary" onclick="markOrdered('${p.barcode}')">✅ สั่งของแล้ว</button>` : ''}
+        ${canResolve ? `<button class="btn btn-primary" onclick="markOrdered('${p.sku}')">✅ สั่งของแล้ว</button>` : ''}
       </div>`).join('') : `<div style="text-align:center;padding:30px;color:var(--text2)">✅ ไม่มีสินค้าที่ต้องสั่งเพิ่มตอนนี้</div>`;
   }
 
   const snoozedBody = document.getElementById('snoozedList');
   if (snoozedBody) {
     snoozedBody.innerHTML = snoozed.length ? snoozed.map(p => {
-      const daysLeft = Math.max(1, Math.ceil((snoozes[p.barcode] - Date.now()) / 86400000));
+      const daysLeft = Math.max(1, Math.ceil((snoozes[p.sku] - Date.now()) / 86400000));
       return `<div class="alert-row snoozed">
         <div class="alert-emoji">${p.emoji}</div>
         <div class="alert-info">
           <div class="alert-name">${p.name}</div>
           <div class="alert-sub">สั่งไปแล้ว — จะเตือนอีกครั้งใน ${daysLeft} วัน (ถ้าของยังไม่เข้า)</div>
         </div>
-        ${canResolve ? `<button class="btn btn-outline" onclick="remindAgain('${p.barcode}')">🔔 เตือนตอนนี้เลย</button>` : ''}
+        ${canResolve ? `<button class="btn btn-outline" onclick="remindAgain('${p.sku}')">🔔 เตือนตอนนี้เลย</button>` : ''}
       </div>`;
     }).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px">— ไม่มี —</div>`;
+  }
+
+  const discBody = document.getElementById('discrepancyList');
+  if (discBody) {
+    const { data: discs } = await sb.from('stock_discrepancies').select('*').order('noted_at', { ascending: false }).limit(50);
+    discBody.innerHTML = (discs && discs.length) ? discs.map(d => {
+      const p = demoProducts.find(x => x.sku === d.sku);
+      return `<div class="alert-row">
+        <div class="alert-emoji">${p ? p.emoji : '❓'}</div>
+        <div class="alert-info">
+          <div class="alert-name">${p ? p.name : d.sku}</div>
+          <div class="alert-sub">ขายเกินสต็อกที่มี ${d.qty_short} ชิ้น · ${new Date(d.noted_at).toLocaleString('th-TH')}</div>
+        </div>
+        ${canResolve ? `<button class="btn btn-outline" onclick="dismissDiscrepancy('${d.id}')">✅ ปรับแล้ว / รับทราบ</button>` : ''}
+      </div>`;
+    }).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px">✅ ไม่มีความคลาดเคลื่อน</div>`;
   }
 
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
@@ -1552,15 +1664,17 @@ async function renderManager() {
   const logBody = document.getElementById('priceLogBody');
   if (logBody) {
     const { data: rows } = await sb.from('price_changes')
-      .select('*, profiles(display_name)')
+      .select('*')
       .order('changed_at', { ascending: false }).limit(50);
+    // ใช้ชื่อที่บันทึกไว้ ณ ตอนนั้น (changed_by_name) ไม่ใช่ join สดไปยัง profiles —
+    // กันไม่ให้ประวัติเก่าโชว์ชื่อใหม่ย้อนหลังถ้าคนคนนั้นเปลี่ยนชื่อแสดงทีหลัง
     logBody.innerHTML = (rows && rows.length) ? rows.map(c => `
       <tr>
         <td style="color:var(--text2);font-size:12px">${new Date(c.changed_at).toLocaleString('th-TH')}</td>
         <td><strong>${c.name}</strong></td>
         <td>฿${c.prev_price}</td>
         <td style="color:var(--accent);font-weight:700">฿${c.new_price}</td>
-        <td>${c.profiles ? c.profiles.display_name : '—'}</td>
+        <td>${c.changed_by_name || '—'}</td>
       </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:16px">— ยังไม่มีการปรับราคา —</td></tr>`;
   }
 }
@@ -1572,7 +1686,7 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
-const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen' };
+const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage' };
 const NAV_ITEMS = [
   { key: 'arch', icon: '🗺️', label: 'Architecture', mobileLabel: 'ระบบ', perm: null },
   { key: 'pos', icon: '🛒', label: 'หน้าขาย (POS)', mobileLabel: 'ขายของ', perm: 'pos_sell' },
@@ -1582,6 +1696,7 @@ const NAV_ITEMS = [
   { key: 'report', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', perm: 'report_view' },
   { key: 'manager', icon: '📋', label: 'จัดการ', mobileLabel: 'จัดการ', perm: 'manager_view', badge: true },
   { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
+  { key: 'permissions', icon: '🔐', label: 'สิทธิ์การเข้าถึง', mobileLabel: 'สิทธิ์', perm: 'permissions_manage' },
   { key: 'settings', icon: '⚙️', label: 'ตั้งค่าระบบ', mobileLabel: 'ตั้งค่า', perm: 'settings_manage' },
 ];
 function navOrderedItems() {
@@ -1626,6 +1741,7 @@ function showPage(name, el) {
   if (name === 'report') renderReport();
   if (name === 'manager') renderManager();
   if (name === 'users') renderUsers();
+  if (name === 'permissions') renderPermissionsPage();
   if (name === 'settings') renderSettingsPage();
   if (name === 'manualbc') renderManualBarcodePage();
 }
@@ -1655,9 +1771,52 @@ function openLightbox(url) {
 }
 function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
 
+// ========== MY PROFILE (ชื่อที่แสดง / Avatar Emoji / UserID — แก้ไขเองได้) ==========
+const AVATAR_EMOJIS = ['🙂','😎','🫡','😊','🧑‍🌾','👩‍🌾','🧑‍💼','👩‍💼','🐱','🐶','🦊','🐻','🌟','🔥','💪','👑'];
+function renderNavIdentity() {
+  if (!profile) return;
+  document.getElementById('navUserName').textContent = `${profile.avatar_emoji || '🙂'} ${profile.display_name}`;
+}
+function openMyProfile() {
+  if (!profile) return;
+  document.getElementById('mpDisplayName').value = profile.display_name || '';
+  document.getElementById('mpUserId').value = profile.user_id || '';
+  document.getElementById('mpErr').textContent = '';
+  document.getElementById('avatarEmojiChips').innerHTML = AVATAR_EMOJIS.map(e =>
+    `<div class="ratio-chip ${e===(profile.avatar_emoji||'🙂')?'active':''}" style="font-size:20px;padding:6px 10px" data-emoji="${e}" onclick="pickAvatarEmoji('${e}')">${e}</div>`
+  ).join('');
+  document.getElementById('myProfileModal').classList.add('open');
+}
+let pendingAvatarEmoji = null;
+function pickAvatarEmoji(e) {
+  pendingAvatarEmoji = e;
+  document.querySelectorAll('#avatarEmojiChips .ratio-chip').forEach(c => c.classList.toggle('active', c.getAttribute('data-emoji') === e));
+}
+function closeMyProfile() { document.getElementById('myProfileModal').classList.remove('open'); pendingAvatarEmoji = null; }
+async function saveMyProfile() {
+  const display_name = document.getElementById('mpDisplayName').value.trim();
+  const user_id = document.getElementById('mpUserId').value.trim() || null;
+  const errEl = document.getElementById('mpErr');
+  if (!display_name) { errEl.textContent = 'กรอกชื่อที่แสดง'; return; }
+  const payload = { display_name };
+  if (pendingAvatarEmoji) payload.avatar_emoji = pendingAvatarEmoji;
+  if (user_id !== profile.user_id) payload.user_id = user_id;
+  const { error } = await sb.from('profiles').update(payload).eq('id', session.user.id);
+  if (error) {
+    errEl.textContent = error.message.includes('duplicate') ? 'UserID นี้มีคนใช้แล้ว' : error.message;
+    return;
+  }
+  profile = { ...profile, ...payload };
+  renderNavIdentity();
+  closeMyProfile();
+  showToast('✅ บันทึกโปรไฟล์แล้ว');
+}
+document.getElementById('myProfileModal').addEventListener('click', function(e) { if(e.target===this) closeMyProfile(); });
+
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
-let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER() };
-function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','manualbc','report','manager','users','settings']; }
+let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3' };
+const CARD_RATIOS = ['1/1', '4/5', '2/3', '1/2'];
+function NAV_ITEMS_DEFAULT_ORDER() { return ['arch','pos','inventory','master','manualbc','report','manager','users','permissions','settings']; }
 
 const SETTINGS_CACHE_KEY = 'mm_settings_cache_v1';
 async function loadSettings() {
@@ -1673,6 +1832,7 @@ async function loadSettings() {
 }
 function applyBranding() {
   document.documentElement.style.setProperty('--accent', appSettings.topbar_color || '#2d5016');
+  document.documentElement.style.setProperty('--pc-ratio', appSettings.product_card_ratio || '2/3');
   const logoHtml = appSettings.logo_url
     ? `<img src="${appSettings.logo_url}">${appSettings.shop_name || 'MiniMart'}`
     : `🏪 ${appSettings.shop_name || 'MiniMart'}`;
@@ -1713,6 +1873,14 @@ async function saveShopSettings() {
   await loadSettings();
 }
 
+async function setCardRatio(ratio) {
+  const { error } = await sb.from('app_settings').update({ product_card_ratio: ratio, updated_by: session.user.id }).eq('id', true);
+  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
+  await loadSettings();
+  renderSettingsPage();
+  showToast('✅ บันทึกสัดส่วนการ์ดแล้ว');
+}
+
 async function moveNavItem(key, dir) {
   const order = navOrderedItems().map(n => n.key);
   const i = order.indexOf(key);
@@ -1732,6 +1900,10 @@ function renderSettingsPage() {
   const logoPrev2 = document.getElementById('logoPreview2');
   logoPrev.innerHTML = appSettings.logo_url ? `<img src="${appSettings.logo_url}">` : '🏪';
   logoPrev2.innerHTML = appSettings.logo_url ? `<img src="${appSettings.logo_url}">` : '🖼️';
+  const curRatio = appSettings.product_card_ratio || '2/3';
+  document.getElementById('cardRatioChips').innerHTML = CARD_RATIOS.map(r =>
+    `<div class="ratio-chip ${r===curRatio?'active':''}" onclick="setCardRatio('${r}')">${r}</div>`
+  ).join('');
   document.getElementById('faviconPreview').innerHTML = appSettings.favicon_url ? `<img src="${appSettings.favicon_url}">` : '🔖';
 
   const items = navOrderedItems();
@@ -1799,9 +1971,9 @@ function handleScannedBarcode(code) {
   filterProducts(code);
   // auto-add if exact match
   const p = demoProducts.find(x => x.barcode === code);
-  if (p && totalStock(p) > 0) {
+  if (p) {
     setTimeout(() => {
-      addToCart(p.barcode);
+      addToCart(p.sku);
       document.getElementById('posSearch').value = '';
       filterProducts('');
       closeScanner();
@@ -1810,7 +1982,7 @@ function handleScannedBarcode(code) {
   } else {
     setTimeout(() => {
       closeScanner();
-      showToast(p ? `📷 ${p.name} — สินค้าหมด` : `📷 Barcode: ${code} — ไม่พบสินค้า`);
+      showToast(`📷 Barcode: ${code} — ไม่พบสินค้า`);
     }, 800);
   }
 }
@@ -1850,14 +2022,14 @@ function addBySearch(val) {
   if (!q) return;
   const exact = demoProducts.find(p => p.barcode === q);
   if (exact) {
-    addToCart(exact.barcode);
+    addToCart(exact.sku);
     document.getElementById('posSearch').value = '';
     filterProducts('');
     return;
   }
   const matches = demoProducts.filter(p => p.barcode.includes(q) || p.name.includes(q));
   if (matches.length === 1) {
-    addToCart(matches[0].barcode);
+    addToCart(matches[0].sku);
     document.getElementById('posSearch').value = '';
     filterProducts('');
   } else if (matches.length === 0) {
@@ -1869,12 +2041,14 @@ function addBySearch(val) {
 function renderProducts(list) {
   document.getElementById('productGrid').innerHTML = list.map(p => {
     const stock = totalStock(p);
+    // ไม่ล็อกการขายตอนสต็อกในระบบเป็น 0 — หน้างานอาจยังมีของขาย (นับสต็อกผิดได้) จึงให้กดขายต่อได้เสมอ
+    // แต่โชว์เตือนชัดเจนว่า "ระบบว่าหมด" ไว้ก่อน แล้วไปบันทึกเป็นความคลาดเคลื่อนให้ผู้จัดการตรวจสอบทีหลัง
     return `
-    <div class="product-card ${stock===0?'out-of-stock':''}" onclick="addToCart('${p.barcode}')">
+    <div class="product-card ${stock===0?'stock-warn':''}" onclick="addToCart('${p.sku}')">
       <div class="pc-img">${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div>
       <div class="pc-name">${p.name}</div>
       <div class="pc-price">฿${p.price}</div>
-      <div class="pc-stock ${stock<=p.safetyStock&&stock>0?'low':''}">${stock===0?'หมดแล้ว':stock<=p.safetyStock?`⚠️ เหลือ ${stock}`:`${stock} ชิ้น`}</div>
+      <div class="pc-stock ${stock<=p.safetyStock&&stock>0?'low':''}">${stock===0?'⛔ ระบบว่าหมด (กดขายได้ถ้ามีจริง)':stock<=p.safetyStock?`⚠️ เหลือ ${stock}`:`${stock} ชิ้น`}</div>
     </div>`;
   }).join('');
 }
@@ -1886,33 +2060,32 @@ function filterProducts(val) {
 
 function handleScanEnter(e) { if(e.key==='Enter') addBySearch(e.target.value); }
 
-function addToCart(barcode) {
-  const p = demoProducts.find(x => x.barcode === barcode);
-  if (!p || totalStock(p) === 0) return;
-  const existing = cart.find(c => c.barcode === barcode);
-  if (existing) { if (existing.qty < totalStock(p)) existing.qty++; }
-  else cart.push({ barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
+function addToCart(sku) {
+  const p = demoProducts.find(x => x.sku === sku);
+  if (!p) return;
+  // ไม่ล็อกตามสต็อกในระบบ (ดู renderProducts ด้านบน) — ปล่อยให้กดขายต่อได้แม้ระบบว่าหมด
+  const existing = cart.find(c => c.sku === sku);
+  if (existing) existing.qty++;
+  else cart.push({ sku: p.sku, barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
   renderCart();
   showToast(`+ ${p.name}`);
 }
 
-function changeQty(barcode, delta) {
-  const item = cart.find(c => c.barcode === barcode);
+function changeQty(sku, delta) {
+  const item = cart.find(c => c.sku === sku);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) cart = cart.filter(c => c.barcode !== barcode);
+  if (item.qty <= 0) cart = cart.filter(c => c.sku !== sku);
   renderCart();
 }
 
 // พิมพ์จำนวนตรงๆ ได้เลย เช่นซื้อทีเดียว 30 ชิ้น ไม่ต้องกด +/- ทีละครั้ง
-function setQty(barcode, val) {
-  const item = cart.find(c => c.barcode === barcode);
+function setQty(sku, val) {
+  const item = cart.find(c => c.sku === sku);
   if (!item) return;
-  const p = demoProducts.find(x => x.barcode === barcode);
+  // ไม่ล็อกจำนวนตามสต็อกในระบบ — ดู addToCart ด้านบน
   let qty = parseInt(val) || 0;
-  const max = p ? totalStock(p) : qty;
-  if (qty > max) { qty = max; showToast(`⚠️ สต็อกมีแค่ ${max} ชิ้น`); }
-  if (qty <= 0) { cart = cart.filter(c => c.barcode !== barcode); }
+  if (qty <= 0) { cart = cart.filter(c => c.sku !== sku); }
   else { item.qty = qty; }
   renderCart();
 }
@@ -1934,14 +2107,14 @@ function renderCart() {
   el.innerHTML = cart.map(c => `
     <div class="cart-item">
       <div class="ci-thumb" ${c.imageUrl ? `onclick="openLightbox('${c.imageUrl}')"` : ''}>${c.imageUrl ? `<img src="${c.imageUrl}">` : c.emoji}</div>
-      <div class="ci-name">${c.name}<br><span style="font-size:13px;color:var(--text2);font-weight:400">฿${c.price} / ชิ้น</span></div>
+      <div class="ci-name"><span class="ci-name-text">${c.name}</span><span class="ci-unit-price">฿${c.price}/ชิ้น</span></div>
       <div class="ci-qty-row">
-        <button class="ci-btn" onclick="changeQty('${c.barcode}',-1)">−</button>
-        <input class="ci-qty-input" type="number" value="${c.qty}" onchange="setQty('${c.barcode}', this.value)" onclick="this.select()">
-        <button class="ci-btn" onclick="changeQty('${c.barcode}',1)">+</button>
+        <button class="ci-btn" onclick="changeQty('${c.sku}',-1)">−</button>
+        <input class="ci-qty-input" type="number" value="${c.qty}" onchange="setQty('${c.sku}', this.value)" onclick="this.select()">
+        <button class="ci-btn" onclick="changeQty('${c.sku}',1)">+</button>
       </div>
       <div class="ci-price">฿${(c.price*c.qty).toFixed(0)}</div>
-      <span class="ci-del" onclick="changeQty('${c.barcode}',-999)">✕</span>
+      <span class="ci-del" onclick="changeQty('${c.sku}',-999)">✕</span>
     </div>`).join('');
   document.getElementById('cartCount').textContent = cart.length;
   document.getElementById('sumQty').textContent = totalQty + ' ชิ้น';
@@ -1997,7 +2170,7 @@ async function processSale() {
 
   // ตัดสต็อกแบบ FIFO + บันทึกการขายทั้งหมด ทำเป็นธุรกรรมเดียวบนเซิร์ฟเวอร์ (RPC `sell`)
   // กันสองเครื่องขายสินค้าตัวเดียวกันพร้อมกันแล้วตัดสต็อกชนกัน
-  const items = cart.map(c => ({ barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
+  const items = cart.map(c => ({ sku: c.sku, barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
   const { error } = await sb.rpc('sell', { p_items: items, p_pay: pay });
   if (error) { showToast('⚠️ ชำระเงินไม่สำเร็จ: ' + error.message); return; }
 
@@ -2081,7 +2254,10 @@ function renderInventory() {
       <td style="color:var(--text2)">฿${cost.toFixed(2)}</td>
       <td><strong style="font-family:'IBM Plex Mono',monospace">${stock}</strong></td>
       <td>${status}</td>
-      <td>${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="editProduct('${p.barcode}')">แก้ไข</button>` : ''}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="showStockModal('${p.sku}')">📦 Stock</button>
+        ${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;margin-left:4px" onclick="editProduct('${p.sku}')">แก้ไข</button>` : ''}
+      </td>
     </tr>`;
   }).join('');
   document.getElementById('invStatTotal').textContent = list.length;
@@ -2114,13 +2290,45 @@ async function saveReceiveStock() {
   const qty = parseInt(document.getElementById('rcvQty').value) || 0;
   const cost = parseFloat(document.getElementById('rcvCost').value) || 0;
   if (qty <= 0) { showToast('⚠️ กรอกจำนวนให้ถูกต้อง'); return; }
-  const { error } = await sb.from('product_lots').insert({ barcode: bc, qty, cost, received_by: session.user.id });
+  const { error } = await sb.from('product_lots').insert({ sku: p.sku, barcode: bc, qty, qty_received: qty, cost, received_by: session.user.id });
   if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
   showToast(`✅ รับของเข้า: ${p.name} +${qty} ชิ้น`);
   closeReceiveModal();
   await loadProducts();
   renderInventory(); renderMaster(); renderProducts(demoProducts); renderManager();
 }
+
+// ========== STOCK LOT DETAIL (ดู Lot ทั้งหมดของสินค้าทีละตัว แบบ FIFO) ==========
+function showStockModal(sku) {
+  const p = demoProducts.find(x => x.sku === sku);
+  if (!p) return;
+  document.getElementById('stockModalTitle').textContent = `📦 Lot สต็อก: ${p.name}`;
+  // เรียงเก่าสุดก่อน (FIFO) — ตรงกับลำดับที่ sell() ตัดสต็อกจริงบนเซิร์ฟเวอร์
+  const lots = p.lots.slice().sort((a, b) => a.date - b.date);
+  // Lot ที่ "ใช้อยู่" คือ Lot เก่าสุดที่ยังไม่หมด (ตัวแรกที่เจอตามลำดับ FIFO)
+  const activeLotId = (lots.find(l => l.qty > 0) || {}).id;
+  document.getElementById('stockModalBody').innerHTML = lots.length ? lots.map(l => {
+    const sold = l.qtyReceived - l.qty;
+    const depleted = l.qty === 0;
+    const isActive = l.id === activeLotId;
+    return `
+    <div class="lot-row ${depleted ? 'depleted' : ''}">
+      <div class="lot-info">
+        <div><div class="lot-label">รับเข้า</div><div class="lot-val">${new Date(l.date).toLocaleDateString('th-TH')}</div></div>
+        <div><div class="lot-label">รับเข้า (ชิ้น)</div><div class="lot-val">${l.qtyReceived}</div></div>
+        <div><div class="lot-label">ต้นทุน/ชิ้น</div><div class="lot-val">฿${l.cost.toFixed(2)}</div></div>
+        <div><div class="lot-label">ขายไปแล้ว</div><div class="lot-val">${sold}</div></div>
+      </div>
+      <div style="text-align:center;min-width:70px">
+        <div class="lot-label" style="margin-bottom:2px">เหลือ</div>
+        <div class="lot-val" style="font-size:18px">${l.qty}</div>
+      </div>
+      ${isActive ? '<span class="lot-active-tag">🟢 ใช้อยู่ (FIFO)</span>' : depleted ? '<span class="lot-depleted-tag">หมดแล้ว</span>' : ''}
+    </div>`;
+  }).join('') : `<div style="text-align:center;padding:30px;color:var(--text2)">ยังไม่มี Lot สต็อกสำหรับสินค้านี้</div>`;
+  document.getElementById('stockModal').classList.add('open');
+}
+function closeStockModal() { document.getElementById('stockModal').classList.remove('open'); }
 
 // ========== MASTER DATA (ค้นหา / กรองหมวดหมู่ / เรียงลำดับ) ==========
 let masterFilter = { status: 'all', manual: false };
@@ -2170,7 +2378,7 @@ function renderMaster() {
   document.getElementById('masterContent').innerHTML = list.length ? list.map(p => {
     const stock = totalStock(p);
     return `
-    <div class="master-card" onclick="editProduct('${p.barcode}')">
+    <div class="master-card" onclick="editProduct('${p.sku}')">
       <div class="mc-img">
         ${p.imageUrl ? `<img src="${p.imageUrl}" onclick="event.stopPropagation();openLightbox('${p.imageUrl}')">` : p.emoji}
         <span class="mc-badge ${stock===0?'badge-out':stock<=p.safetyStock?'badge-low':'badge-ok'}">${stock===0?'หมด':stock<=p.safetyStock?'ใกล้หมด':'มีสต็อก'}</span>
@@ -2243,12 +2451,12 @@ async function renderReport() {
 // ========== SALE TICKETS (ประวัติการขายแบบบิล พร้อมรายละเอียด FIFO cost ต่อชิ้น) ==========
 async function renderSalesTickets() {
   const { data: tickets } = await sb.from('sales')
-    .select('id, total, profit, sold_at, sold_by, profiles(display_name)')
+    .select('id, total, profit, sold_at, sold_by, sold_by_name')
     .order('sold_at', { ascending: false }).limit(50);
   document.getElementById('salesTicketBody').innerHTML = (tickets && tickets.length) ? tickets.map(t => `
     <tr style="cursor:pointer" onclick="openTicketDetail('${t.id}')">
       <td style="font-size:12px">${new Date(t.sold_at).toLocaleString('th-TH')}</td>
-      <td>${t.profiles ? t.profiles.display_name : '—'}</td>
+      <td>${t.sold_by_name || '—'}</td>
       <td id="ticketCount-${t.id}">…</td>
       <td>฿${Number(t.total).toFixed(2)}</td>
       <td style="color:var(--accent);font-weight:700">฿${Number(t.profit).toFixed(2)}</td>
@@ -2265,12 +2473,12 @@ async function renderSalesTickets() {
 }
 
 async function openTicketDetail(saleId) {
-  const { data: sale } = await sb.from('sales').select('*, profiles(display_name)').eq('id', saleId).single();
+  const { data: sale } = await sb.from('sales').select('*').eq('id', saleId).single();
   const { data: items } = await sb.from('sale_items').select('*').eq('sale_id', saleId);
   if (!sale) return;
   document.getElementById('ticketId').textContent = '#' + saleId.slice(0,8);
   document.getElementById('ticketMeta').textContent =
-    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.profiles ? sale.profiles.display_name : '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
+    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
   document.getElementById('ticketItemsBody').innerHTML = (items||[]).map(it => `
     <tr>
       <td>${it.name}</td>
@@ -2287,12 +2495,12 @@ async function openTicketDetail(saleId) {
 function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
 
 // ========== ADD / EDIT PRODUCT MODAL ==========
-let editingBarcode = null;
+let editingSku = null;
 let pendingManualGen = false; // true เมื่อกด "Manual Gen" ค้างไว้ระหว่างกรอกฟอร์มเพิ่มสินค้าใหม่
 let pendingImageUrl = null;   // รูปที่อัปโหลดไว้ระหว่างกรอกฟอร์ม (อัปโหลดทันทีตอนเลือกไฟล์ แต่บันทึกเข้าสินค้าตอนกด "บันทึก")
 
 function showAddProduct() {
-  editingBarcode = null;
+  editingSku = null;
   pendingManualGen = false;
   pendingImageUrl = null;
   document.getElementById('productModalTitle').textContent = '➕ เพิ่มสินค้าใหม่';
@@ -2309,14 +2517,16 @@ function showAddProduct() {
   document.getElementById('newImageFile').value = '';
   document.getElementById('newImagePreview').innerHTML = '📦';
   document.getElementById('genBarcodeBtn').style.display = can('master_manual_gen') ? 'inline-block' : 'none';
+  document.getElementById('unlockBarcodeBtn').style.display = 'none';
+  document.getElementById('deleteProductBtn').style.display = 'none';
   document.getElementById('addModal').classList.add('open');
 }
 
-function editProduct(barcode) {
+function editProduct(sku) {
   if (!can('inventory_edit_product') && !can('master_edit_price')) { showToast('⚠️ ไม่มีสิทธิ์แก้ไขสินค้า'); return; }
-  const p = demoProducts.find(x => x.barcode === barcode);
+  const p = demoProducts.find(x => x.sku === sku);
   if (!p) return;
-  editingBarcode = barcode;
+  editingSku = sku;
   pendingManualGen = false;
   pendingImageUrl = p.imageUrl || null;
   document.getElementById('productModalTitle').textContent = '✏️ แก้ไขสินค้า: ' + p.name;
@@ -2332,7 +2542,32 @@ function editProduct(barcode) {
   document.getElementById('newImageFile').value = '';
   document.getElementById('newImagePreview').innerHTML = p.imageUrl ? `<img src="${p.imageUrl}">` : '📦';
   document.getElementById('genBarcodeBtn').style.display = 'none'; // barcode ถูกล็อกตอนแก้ไข ไม่ให้ gen ทับ
+  document.getElementById('unlockBarcodeBtn').style.display = canManageCritical() ? 'inline-block' : 'none';
+  document.getElementById('deleteProductBtn').style.display = canManageCritical() ? 'inline-block' : 'none';
   document.getElementById('addModal').classList.add('open');
+}
+
+function unlockBarcodeEdit() {
+  if (!canManageCritical()) return;
+  if (!confirm('ยืนยันแก้ไข Barcode สินค้านี้ใช่หรือไม่? ของจริงที่หน้าร้านอาจต้องแปะฉลากใหม่')) return;
+  document.getElementById('newBarcode').disabled = false;
+  document.getElementById('unlockBarcodeBtn').style.display = 'none';
+}
+
+async function deleteProduct() {
+  if (!canManageCritical() || !editingSku) return;
+  const p = demoProducts.find(x => x.sku === editingSku);
+  if (!p) return;
+  if (!confirm(`ยืนยันลบสินค้า "${p.name}" ใช่หรือไม่? ลบแล้วกู้คืนไม่ได้`)) return;
+  const { error } = await sb.from('products').delete().eq('sku', editingSku);
+  if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
+  showToast(`✅ ลบ ${p.name} แล้ว`);
+  closeModal();
+  await loadProducts();
+  renderProducts(demoProducts);
+  renderInventory();
+  renderMaster();
+  renderManager();
 }
 
 async function handleProductImageChange(inputEl) {
@@ -2356,6 +2591,7 @@ function closeModal() {
 }
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
+document.getElementById('stockModal').addEventListener('click', function(e) { if(e.target===this) closeStockModal(); });
 document.getElementById('ticketModal').addEventListener('click', function(e) { if(e.target===this) closeTicketModal(); });
 
 // ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
@@ -2395,19 +2631,18 @@ function renderManualBarcodePage() {
       <td>${isConform
         ? '<span class="stock-badge badge-ok">✅ MBxxxx</span>'
         : '<span class="stock-badge badge-low">⚠️ รูปแบบเก่า</span>'}</td>
-      <td>${isConform ? '' : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="migrateToSequentialBarcode('${p.barcode}')">แปลงเป็น ${nextManualBarcode()}</button>`}</td>
+      <td>${isConform ? '' : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="migrateToSequentialBarcode('${p.sku}')">แปลงเป็น ${nextManualBarcode()}</button>`}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีสินค้า Manual Barcode</td></tr>`;
 }
 
-async function migrateToSequentialBarcode(oldBarcode) {
+async function migrateToSequentialBarcode(sku) {
   if (!can('master_manual_gen')) { showToast('⚠️ ไม่มีสิทธิ์'); return; }
   const newBarcode = nextManualBarcode();
-  // ปลอดภัยเพราะ FK ทุกตัว (lots/sale_items/price_changes/snoozes) ตั้ง ON UPDATE CASCADE ไว้แล้ว
-  // ประวัติการขาย/ต้นทุนเดิมของสินค้านี้จะตามรหัสใหม่ไปด้วย ไม่หลุดหาย
-  const { error } = await sb.from('products').update({ barcode: newBarcode }).eq('barcode', oldBarcode);
+  // sku เป็น Primary Key ที่ไม่เปลี่ยน — เปลี่ยนแค่ barcode (attribute ธรรมดา) ประวัติทุกตัวอ้างด้วย sku อยู่แล้วไม่หลุดหาย
+  const { error } = await sb.from('products').update({ barcode: newBarcode }).eq('sku', sku);
   if (error) { showToast('⚠️ เปลี่ยนรหัสไม่สำเร็จ: ' + error.message); return; }
-  showToast(`✅ เปลี่ยน ${oldBarcode} เป็น ${newBarcode} แล้ว`);
+  showToast(`✅ เปลี่ยนเป็น ${newBarcode} แล้ว`);
   await loadProducts();
   renderManualBarcodePage();
 }
@@ -2465,14 +2700,22 @@ async function saveNewProduct() {
   const cat = document.getElementById('newCat').value;
   const safetyStock = parseInt(document.getElementById('newSafety').value) || 5;
 
-  if (editingBarcode) {
-    const p = demoProducts.find(x => x.barcode === editingBarcode);
+  if (editingSku) {
+    const p = demoProducts.find(x => x.sku === editingSku);
     if (!p) { closeModal(); return; }
     const priceChanged = can('master_edit_price') && p.price !== price;
-    const { error } = await sb.from('products').update({ name, price, cat, safety_stock: safetyStock, image_url: pendingImageUrl }).eq('barcode', p.barcode);
+    const barcodeInput = document.getElementById('newBarcode');
+    const newBarcodeVal = barcodeInput.value.trim();
+    const barcodeChanged = !barcodeInput.disabled && canManageCritical() && newBarcodeVal && newBarcodeVal !== p.barcode;
+    if (barcodeChanged && demoProducts.some(x => x.sku !== p.sku && x.barcode === newBarcodeVal)) {
+      showToast('⚠️ Barcode นี้มีอยู่แล้ว'); return;
+    }
+    const updatePayload = { name, price, cat, safety_stock: safetyStock, image_url: pendingImageUrl };
+    if (barcodeChanged) updatePayload.barcode = newBarcodeVal;
+    const { error } = await sb.from('products').update(updatePayload).eq('sku', p.sku);
     if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
     if (priceChanged) {
-      await sb.from('price_changes').insert({ barcode: p.barcode, name, prev_price: p.price, new_price: price, changed_by: session.user.id });
+      await sb.from('price_changes').insert({ sku: p.sku, barcode: barcodeChanged ? newBarcodeVal : p.barcode, name, prev_price: p.price, new_price: price, changed_by: session.user.id });
     }
     showToast('✅ บันทึกการแก้ไขสำเร็จ!');
   } else {
@@ -2481,12 +2724,12 @@ async function saveNewProduct() {
     if (demoProducts.some(p => p.barcode === barcode)) { showToast('⚠️ Barcode นี้มีอยู่แล้ว'); return; }
     const cost = parseFloat(document.getElementById('newCost').value) || 0;
     const stock = parseInt(document.getElementById('newStock').value) || 0;
-    const { error: insErr } = await sb.from('products').insert({
+    const { data: insData, error: insErr } = await sb.from('products').insert({
       barcode, name, brand: name, cat, price, emoji: '📦', safety_stock: safetyStock, manual_gen: pendingManualGen, image_url: pendingImageUrl,
-    });
+    }).select('sku').single();
     if (insErr) { showToast('⚠️ เพิ่มสินค้าไม่สำเร็จ: ' + insErr.message); return; }
     if (stock > 0) {
-      await sb.from('product_lots').insert({ barcode, qty: stock, cost, received_by: session.user.id });
+      await sb.from('product_lots').insert({ sku: insData.sku, barcode, qty: stock, qty_received: stock, cost, received_by: session.user.id });
     }
     showToast('✅ เพิ่มสินค้าสำเร็จ!');
   }
@@ -2534,12 +2777,20 @@ async function doBootstrap() {
 }
 
 async function doLogin() {
-  const email = document.getElementById('liEmail').value.trim();
+  const idOrEmail = document.getElementById('liEmail').value.trim();
   const password = document.getElementById('liPassword').value;
   const errEl = document.getElementById('liErr');
   errEl.textContent = '';
+  let email = idOrEmail;
+  if (idOrEmail && !idOrEmail.includes('@')) {
+    // ไม่ใช่รูปแบบอีเมล — ถือว่าเป็น UserID แล้วหา email ที่ผูกไว้ก่อน
+    // (Supabase Auth ล็อกอินด้วย email เท่านั้น ฝั่ง UserID จึงเป็นแค่ alias ไปหา email จริง)
+    const { data: foundEmail, error: lookupErr } = await sb.rpc('email_for_user_id', { p_user_id: idOrEmail });
+    if (lookupErr || !foundEmail) { errEl.textContent = 'ไม่พบ UserID นี้'; return; }
+    email = foundEmail;
+  }
   const { error } = await sb.auth.signInWithPassword({ email, password });
-  if (error) { errEl.textContent = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'; return; }
+  if (error) { errEl.textContent = 'UserID/อีเมล หรือรหัสผ่านไม่ถูกต้อง'; return; }
   await onAuthed();
 }
 
@@ -2578,7 +2829,7 @@ function focusPosSearchIfActive() {
 function applyOfflineFallback(cached) {
   profile = cached.profile; perms = cached.perms; isAdmin = cached.isAdmin; demoProducts = cached.products;
   showToast('⚠️ ออฟไลน์ — ใช้ข้อมูลล่าสุดที่บันทึกไว้ (ขายของ/sync ใหม่ต้องรอมีเน็ต)');
-  document.getElementById('navUserName').textContent = profile.display_name;
+  renderNavIdentity();
   document.getElementById('navRoleChip').textContent = (profile.roles && profile.roles.name) || (isAdmin ? 'Admins' : '—');
   applyPermissionsToNav();
   hideAuthOverlay();
@@ -2621,7 +2872,7 @@ async function onAuthed() {
     return;
   }
 
-  document.getElementById('navUserName').textContent = profile.display_name;
+  renderNavIdentity();
   document.getElementById('navRoleChip').textContent = (profile.roles && profile.roles.name) || (isAdmin ? 'Admins' : '—');
   applyPermissionsToNav();
 
@@ -2650,7 +2901,7 @@ async function renderUsers() {
   const { data: users } = await sb.from('profiles').select('*, roles(name)').order('created_at');
   document.getElementById('usersTableBody').innerHTML = (users || []).map(u => `
     <tr>
-      <td><strong>${u.display_name}</strong>${u.id === session.user.id ? ' <span style="color:var(--text2);font-size:11px">(คุณ)</span>' : ''}</td>
+      <td>${u.avatar_emoji || '🙂'} <strong>${u.display_name}</strong>${u.id === session.user.id ? ' <span style="color:var(--text2);font-size:11px">(คุณ)</span>' : ''}${u.user_id ? `<div style="font-size:11px;color:var(--text2)">@${u.user_id}</div>` : ''}</td>
       <td>
         <select class="form-input" style="padding:5px 8px;font-size:12px;width:auto" onchange="changeUserRole('${u.id}', this.value)"
           ${u.id === session.user.id ? 'disabled title="เปลี่ยน role ตัวเองไม่ได้ ให้แอดมินคนอื่นเปลี่ยนให้"' : ''}>
@@ -2660,6 +2911,48 @@ async function renderUsers() {
       <td style="color:var(--text2);font-size:12px">${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
       <td></td>
     </tr>`).join('');
+}
+
+// ========== ROLE PERMISSION MATRIX (Admins เท่านั้น) ==========
+const PERM_LABELS = {
+  pos_sell: '🛒 ขายสินค้า (POS)',
+  inventory_view: '📦 ดูหน้าคลังสินค้า',
+  inventory_edit_product: '✏️ แก้ไขสินค้าในคลัง',
+  inventory_receive: '📥 รับสินค้าเข้าสต็อก',
+  master_view: '🗂️ ดู Master Data',
+  master_edit_price: '💰 แก้ไขราคาสินค้า',
+  master_manual_gen: '🏷️ สร้าง/จัดการ Manual Barcode',
+  report_view: '📊 ดูรายงานยอดขาย',
+  manager_view: '📋 ดูหน้าจัดการ/สต็อกใกล้หมด',
+  manager_resolve_alert: '✅ จัดการแจ้งเตือนสต็อก (สั่งของแล้ว)',
+  settings_manage: '⚙️ จัดการตั้งค่าระบบ',
+  users_manage: '👥 จัดการผู้ใช้งาน',
+};
+async function renderPermissionsPage() {
+  const { data: roles } = await sb.from('roles').select('*').order('name');
+  const { data: rows } = await sb.from('role_permissions').select('role_id, permission_key, allowed');
+  // Admins ไม่ถูกจำกัดโดยตารางนี้ (isAdmin bypass ทุก permission ในแอป) — ไม่ต้องโชว์ column ให้สับสน
+  const shownRoles = (roles || []).filter(r => r.name !== 'Admins');
+  const byRoleKey = {};
+  (rows || []).forEach(r => { byRoleKey[r.role_id + '|' + r.permission_key] = r.allowed; });
+
+  document.getElementById('permMatrixHead').innerHTML = '<th>สิทธิ์</th>' +
+    shownRoles.map(r => `<th style="text-align:center">${r.name}</th>`).join('');
+
+  document.getElementById('permMatrixBody').innerHTML = Object.keys(PERM_LABELS).map(key => `
+    <tr>
+      <td>${PERM_LABELS[key]}</td>
+      ${shownRoles.map(r => {
+        const allowed = !!byRoleKey[r.id + '|' + key];
+        return `<td style="text-align:center"><input type="checkbox" style="width:18px;height:18px;cursor:pointer" ${allowed ? 'checked' : ''} onchange="togglePermission('${r.id}','${key}',this.checked)"></td>`;
+      }).join('')}
+    </tr>`).join('');
+}
+
+async function togglePermission(roleId, key, allowed) {
+  const { error } = await sb.from('role_permissions').upsert({ role_id: roleId, permission_key: key, allowed });
+  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); renderPermissionsPage(); return; }
+  showToast('✅ บันทึกสิทธิ์แล้ว');
 }
 
 async function changeUserRole(userId, roleId) {
