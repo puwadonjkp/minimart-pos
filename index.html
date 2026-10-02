@@ -1463,18 +1463,18 @@ async function loadProducts() {
     sb.from('stock_snoozes').select('*'),
   ]);
   if (pErr) { showToast('⚠️ โหลดสินค้าไม่สำเร็จ: ' + pErr.message); return; }
-  const lotsByBarcode = {};
-  (lots || []).forEach(l => { (lotsByBarcode[l.barcode] ||= []).push({ id: l.id, qty: l.qty, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
+  const lotsBySku = {};
+  (lots || []).forEach(l => { (lotsBySku[l.sku] ||= []).push({ id: l.id, qty: l.qty, cost: Number(l.cost), date: new Date(l.received_at).getTime() }); });
   snoozes = {};
-  (snoozeRows || []).forEach(s => { snoozes[s.barcode] = new Date(s.snoozed_until).getTime(); });
+  (snoozeRows || []).forEach(s => { snoozes[s.sku] = new Date(s.snoozed_until).getTime(); });
   demoProducts = (products || []).map(p => ({
-    barcode: p.barcode, name: p.name, brand: p.brand, cat: p.cat,
+    sku: p.sku, barcode: p.barcode, name: p.name, brand: p.brand, cat: p.cat,
     price: Number(p.price), emoji: p.emoji, safetyStock: p.safety_stock,
-    manualGen: p.manual_gen, imageUrl: p.image_url, lots: lotsByBarcode[p.barcode] || [],
+    manualGen: p.manual_gen, imageUrl: p.image_url, lots: lotsBySku[p.sku] || [],
   }));
 }
 
-let snoozes = {}; // { barcode: timestamp } — populated by loadProducts()
+let snoozes = {}; // { sku: timestamp } — populated by loadProducts()
 
 // ========== STOCK / LOT HELPERS ==========
 function totalStock(p) { return p.lots.reduce((s, l) => s + l.qty, 0); }
@@ -1485,25 +1485,25 @@ function avgCost(p) {
 }
 // ========== STOCK ALERT / SNOOZE ==========
 const SNOOZE_DAYS = 7;
-function isSnoozed(barcode) { return snoozes[barcode] && snoozes[barcode] > Date.now(); }
-async function markOrdered(barcode) {
+function isSnoozed(sku) { return snoozes[sku] && snoozes[sku] > Date.now(); }
+async function markOrdered(sku) {
   const until = new Date(Date.now() + SNOOZE_DAYS * 86400000).toISOString();
-  const { error } = await sb.from('stock_snoozes').upsert({ barcode, snoozed_until: until, snoozed_by: session.user.id });
+  const { error } = await sb.from('stock_snoozes').upsert({ sku, snoozed_until: until, snoozed_by: session.user.id });
   if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
-  snoozes[barcode] = Date.now() + SNOOZE_DAYS * 86400000;
+  snoozes[sku] = Date.now() + SNOOZE_DAYS * 86400000;
   showToast(`📦 บันทึกว่าสั่งของแล้ว จะเตือนอีกครั้งใน ${SNOOZE_DAYS} วัน`);
   renderManager();
 }
-async function remindAgain(barcode) {
-  const { error } = await sb.from('stock_snoozes').delete().eq('barcode', barcode);
+async function remindAgain(sku) {
+  const { error } = await sb.from('stock_snoozes').delete().eq('sku', sku);
   if (error) { showToast('⚠️ ลบไม่สำเร็จ: ' + error.message); return; }
-  delete snoozes[barcode];
+  delete snoozes[sku];
   renderManager();
 }
 async function renderManager() {
   const low = demoProducts.filter(p => totalStock(p) <= p.safetyStock);
-  const active = low.filter(p => !isSnoozed(p.barcode));
-  const snoozed = low.filter(p => isSnoozed(p.barcode));
+  const active = low.filter(p => !isSnoozed(p.sku));
+  const snoozed = low.filter(p => isSnoozed(p.sku));
   const canResolve = can('manager_resolve_alert');
 
   const badges = [document.getElementById('navAlertBadge'), document.getElementById('navAlertBadgeMobile')];
@@ -1520,21 +1520,21 @@ async function renderManager() {
           <div class="alert-name">${p.name}</div>
           <div class="alert-sub">เหลือ ${totalStock(p)} ชิ้น (Safety Stock: ${p.safetyStock})</div>
         </div>
-        ${canResolve ? `<button class="btn btn-primary" onclick="markOrdered('${p.barcode}')">✅ สั่งของแล้ว</button>` : ''}
+        ${canResolve ? `<button class="btn btn-primary" onclick="markOrdered('${p.sku}')">✅ สั่งของแล้ว</button>` : ''}
       </div>`).join('') : `<div style="text-align:center;padding:30px;color:var(--text2)">✅ ไม่มีสินค้าที่ต้องสั่งเพิ่มตอนนี้</div>`;
   }
 
   const snoozedBody = document.getElementById('snoozedList');
   if (snoozedBody) {
     snoozedBody.innerHTML = snoozed.length ? snoozed.map(p => {
-      const daysLeft = Math.max(1, Math.ceil((snoozes[p.barcode] - Date.now()) / 86400000));
+      const daysLeft = Math.max(1, Math.ceil((snoozes[p.sku] - Date.now()) / 86400000));
       return `<div class="alert-row snoozed">
         <div class="alert-emoji">${p.emoji}</div>
         <div class="alert-info">
           <div class="alert-name">${p.name}</div>
           <div class="alert-sub">สั่งไปแล้ว — จะเตือนอีกครั้งใน ${daysLeft} วัน (ถ้าของยังไม่เข้า)</div>
         </div>
-        ${canResolve ? `<button class="btn btn-outline" onclick="remindAgain('${p.barcode}')">🔔 เตือนตอนนี้เลย</button>` : ''}
+        ${canResolve ? `<button class="btn btn-outline" onclick="remindAgain('${p.sku}')">🔔 เตือนตอนนี้เลย</button>` : ''}
       </div>`;
     }).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px">— ไม่มี —</div>`;
   }
@@ -1801,7 +1801,7 @@ function handleScannedBarcode(code) {
   const p = demoProducts.find(x => x.barcode === code);
   if (p && totalStock(p) > 0) {
     setTimeout(() => {
-      addToCart(p.barcode);
+      addToCart(p.sku);
       document.getElementById('posSearch').value = '';
       filterProducts('');
       closeScanner();
@@ -1850,14 +1850,14 @@ function addBySearch(val) {
   if (!q) return;
   const exact = demoProducts.find(p => p.barcode === q);
   if (exact) {
-    addToCart(exact.barcode);
+    addToCart(exact.sku);
     document.getElementById('posSearch').value = '';
     filterProducts('');
     return;
   }
   const matches = demoProducts.filter(p => p.barcode.includes(q) || p.name.includes(q));
   if (matches.length === 1) {
-    addToCart(matches[0].barcode);
+    addToCart(matches[0].sku);
     document.getElementById('posSearch').value = '';
     filterProducts('');
   } else if (matches.length === 0) {
@@ -1870,7 +1870,7 @@ function renderProducts(list) {
   document.getElementById('productGrid').innerHTML = list.map(p => {
     const stock = totalStock(p);
     return `
-    <div class="product-card ${stock===0?'out-of-stock':''}" onclick="addToCart('${p.barcode}')">
+    <div class="product-card ${stock===0?'out-of-stock':''}" onclick="addToCart('${p.sku}')">
       <div class="pc-img">${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div>
       <div class="pc-name">${p.name}</div>
       <div class="pc-price">฿${p.price}</div>
@@ -1886,33 +1886,33 @@ function filterProducts(val) {
 
 function handleScanEnter(e) { if(e.key==='Enter') addBySearch(e.target.value); }
 
-function addToCart(barcode) {
-  const p = demoProducts.find(x => x.barcode === barcode);
+function addToCart(sku) {
+  const p = demoProducts.find(x => x.sku === sku);
   if (!p || totalStock(p) === 0) return;
-  const existing = cart.find(c => c.barcode === barcode);
+  const existing = cart.find(c => c.sku === sku);
   if (existing) { if (existing.qty < totalStock(p)) existing.qty++; }
-  else cart.push({ barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
+  else cart.push({ sku: p.sku, barcode: p.barcode, name: p.name, price: p.price, emoji: p.emoji, imageUrl: p.imageUrl, qty: 1 });
   renderCart();
   showToast(`+ ${p.name}`);
 }
 
-function changeQty(barcode, delta) {
-  const item = cart.find(c => c.barcode === barcode);
+function changeQty(sku, delta) {
+  const item = cart.find(c => c.sku === sku);
   if (!item) return;
   item.qty += delta;
-  if (item.qty <= 0) cart = cart.filter(c => c.barcode !== barcode);
+  if (item.qty <= 0) cart = cart.filter(c => c.sku !== sku);
   renderCart();
 }
 
 // พิมพ์จำนวนตรงๆ ได้เลย เช่นซื้อทีเดียว 30 ชิ้น ไม่ต้องกด +/- ทีละครั้ง
-function setQty(barcode, val) {
-  const item = cart.find(c => c.barcode === barcode);
+function setQty(sku, val) {
+  const item = cart.find(c => c.sku === sku);
   if (!item) return;
-  const p = demoProducts.find(x => x.barcode === barcode);
+  const p = demoProducts.find(x => x.sku === sku);
   let qty = parseInt(val) || 0;
   const max = p ? totalStock(p) : qty;
   if (qty > max) { qty = max; showToast(`⚠️ สต็อกมีแค่ ${max} ชิ้น`); }
-  if (qty <= 0) { cart = cart.filter(c => c.barcode !== barcode); }
+  if (qty <= 0) { cart = cart.filter(c => c.sku !== sku); }
   else { item.qty = qty; }
   renderCart();
 }
@@ -1936,12 +1936,12 @@ function renderCart() {
       <div class="ci-thumb" ${c.imageUrl ? `onclick="openLightbox('${c.imageUrl}')"` : ''}>${c.imageUrl ? `<img src="${c.imageUrl}">` : c.emoji}</div>
       <div class="ci-name">${c.name}<br><span style="font-size:13px;color:var(--text2);font-weight:400">฿${c.price} / ชิ้น</span></div>
       <div class="ci-qty-row">
-        <button class="ci-btn" onclick="changeQty('${c.barcode}',-1)">−</button>
-        <input class="ci-qty-input" type="number" value="${c.qty}" onchange="setQty('${c.barcode}', this.value)" onclick="this.select()">
-        <button class="ci-btn" onclick="changeQty('${c.barcode}',1)">+</button>
+        <button class="ci-btn" onclick="changeQty('${c.sku}',-1)">−</button>
+        <input class="ci-qty-input" type="number" value="${c.qty}" onchange="setQty('${c.sku}', this.value)" onclick="this.select()">
+        <button class="ci-btn" onclick="changeQty('${c.sku}',1)">+</button>
       </div>
       <div class="ci-price">฿${(c.price*c.qty).toFixed(0)}</div>
-      <span class="ci-del" onclick="changeQty('${c.barcode}',-999)">✕</span>
+      <span class="ci-del" onclick="changeQty('${c.sku}',-999)">✕</span>
     </div>`).join('');
   document.getElementById('cartCount').textContent = cart.length;
   document.getElementById('sumQty').textContent = totalQty + ' ชิ้น';
@@ -1997,7 +1997,7 @@ async function processSale() {
 
   // ตัดสต็อกแบบ FIFO + บันทึกการขายทั้งหมด ทำเป็นธุรกรรมเดียวบนเซิร์ฟเวอร์ (RPC `sell`)
   // กันสองเครื่องขายสินค้าตัวเดียวกันพร้อมกันแล้วตัดสต็อกชนกัน
-  const items = cart.map(c => ({ barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
+  const items = cart.map(c => ({ sku: c.sku, barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
   const { error } = await sb.rpc('sell', { p_items: items, p_pay: pay });
   if (error) { showToast('⚠️ ชำระเงินไม่สำเร็จ: ' + error.message); return; }
 
@@ -2081,7 +2081,7 @@ function renderInventory() {
       <td style="color:var(--text2)">฿${cost.toFixed(2)}</td>
       <td><strong style="font-family:'IBM Plex Mono',monospace">${stock}</strong></td>
       <td>${status}</td>
-      <td>${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="editProduct('${p.barcode}')">แก้ไข</button>` : ''}</td>
+      <td>${(can('inventory_edit_product')||can('master_edit_price')) ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="editProduct('${p.sku}')">แก้ไข</button>` : ''}</td>
     </tr>`;
   }).join('');
   document.getElementById('invStatTotal').textContent = list.length;
@@ -2114,7 +2114,7 @@ async function saveReceiveStock() {
   const qty = parseInt(document.getElementById('rcvQty').value) || 0;
   const cost = parseFloat(document.getElementById('rcvCost').value) || 0;
   if (qty <= 0) { showToast('⚠️ กรอกจำนวนให้ถูกต้อง'); return; }
-  const { error } = await sb.from('product_lots').insert({ barcode: bc, qty, cost, received_by: session.user.id });
+  const { error } = await sb.from('product_lots').insert({ sku: p.sku, barcode: bc, qty, cost, received_by: session.user.id });
   if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
   showToast(`✅ รับของเข้า: ${p.name} +${qty} ชิ้น`);
   closeReceiveModal();
@@ -2170,7 +2170,7 @@ function renderMaster() {
   document.getElementById('masterContent').innerHTML = list.length ? list.map(p => {
     const stock = totalStock(p);
     return `
-    <div class="master-card" onclick="editProduct('${p.barcode}')">
+    <div class="master-card" onclick="editProduct('${p.sku}')">
       <div class="mc-img">
         ${p.imageUrl ? `<img src="${p.imageUrl}" onclick="event.stopPropagation();openLightbox('${p.imageUrl}')">` : p.emoji}
         <span class="mc-badge ${stock===0?'badge-out':stock<=p.safetyStock?'badge-low':'badge-ok'}">${stock===0?'หมด':stock<=p.safetyStock?'ใกล้หมด':'มีสต็อก'}</span>
@@ -2287,12 +2287,12 @@ async function openTicketDetail(saleId) {
 function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
 
 // ========== ADD / EDIT PRODUCT MODAL ==========
-let editingBarcode = null;
+let editingSku = null;
 let pendingManualGen = false; // true เมื่อกด "Manual Gen" ค้างไว้ระหว่างกรอกฟอร์มเพิ่มสินค้าใหม่
 let pendingImageUrl = null;   // รูปที่อัปโหลดไว้ระหว่างกรอกฟอร์ม (อัปโหลดทันทีตอนเลือกไฟล์ แต่บันทึกเข้าสินค้าตอนกด "บันทึก")
 
 function showAddProduct() {
-  editingBarcode = null;
+  editingSku = null;
   pendingManualGen = false;
   pendingImageUrl = null;
   document.getElementById('productModalTitle').textContent = '➕ เพิ่มสินค้าใหม่';
@@ -2312,11 +2312,11 @@ function showAddProduct() {
   document.getElementById('addModal').classList.add('open');
 }
 
-function editProduct(barcode) {
+function editProduct(sku) {
   if (!can('inventory_edit_product') && !can('master_edit_price')) { showToast('⚠️ ไม่มีสิทธิ์แก้ไขสินค้า'); return; }
-  const p = demoProducts.find(x => x.barcode === barcode);
+  const p = demoProducts.find(x => x.sku === sku);
   if (!p) return;
-  editingBarcode = barcode;
+  editingSku = sku;
   pendingManualGen = false;
   pendingImageUrl = p.imageUrl || null;
   document.getElementById('productModalTitle').textContent = '✏️ แก้ไขสินค้า: ' + p.name;
@@ -2395,19 +2395,18 @@ function renderManualBarcodePage() {
       <td>${isConform
         ? '<span class="stock-badge badge-ok">✅ MBxxxx</span>'
         : '<span class="stock-badge badge-low">⚠️ รูปแบบเก่า</span>'}</td>
-      <td>${isConform ? '' : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="migrateToSequentialBarcode('${p.barcode}')">แปลงเป็น ${nextManualBarcode()}</button>`}</td>
+      <td>${isConform ? '' : `<button class="btn btn-primary" style="font-size:11px;padding:4px 10px" onclick="migrateToSequentialBarcode('${p.sku}')">แปลงเป็น ${nextManualBarcode()}</button>`}</td>
     </tr>`;
   }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีสินค้า Manual Barcode</td></tr>`;
 }
 
-async function migrateToSequentialBarcode(oldBarcode) {
+async function migrateToSequentialBarcode(sku) {
   if (!can('master_manual_gen')) { showToast('⚠️ ไม่มีสิทธิ์'); return; }
   const newBarcode = nextManualBarcode();
-  // ปลอดภัยเพราะ FK ทุกตัว (lots/sale_items/price_changes/snoozes) ตั้ง ON UPDATE CASCADE ไว้แล้ว
-  // ประวัติการขาย/ต้นทุนเดิมของสินค้านี้จะตามรหัสใหม่ไปด้วย ไม่หลุดหาย
-  const { error } = await sb.from('products').update({ barcode: newBarcode }).eq('barcode', oldBarcode);
+  // sku เป็น Primary Key ที่ไม่เปลี่ยน — เปลี่ยนแค่ barcode (attribute ธรรมดา) ประวัติทุกตัวอ้างด้วย sku อยู่แล้วไม่หลุดหาย
+  const { error } = await sb.from('products').update({ barcode: newBarcode }).eq('sku', sku);
   if (error) { showToast('⚠️ เปลี่ยนรหัสไม่สำเร็จ: ' + error.message); return; }
-  showToast(`✅ เปลี่ยน ${oldBarcode} เป็น ${newBarcode} แล้ว`);
+  showToast(`✅ เปลี่ยนเป็น ${newBarcode} แล้ว`);
   await loadProducts();
   renderManualBarcodePage();
 }
@@ -2465,14 +2464,14 @@ async function saveNewProduct() {
   const cat = document.getElementById('newCat').value;
   const safetyStock = parseInt(document.getElementById('newSafety').value) || 5;
 
-  if (editingBarcode) {
-    const p = demoProducts.find(x => x.barcode === editingBarcode);
+  if (editingSku) {
+    const p = demoProducts.find(x => x.sku === editingSku);
     if (!p) { closeModal(); return; }
     const priceChanged = can('master_edit_price') && p.price !== price;
-    const { error } = await sb.from('products').update({ name, price, cat, safety_stock: safetyStock, image_url: pendingImageUrl }).eq('barcode', p.barcode);
+    const { error } = await sb.from('products').update({ name, price, cat, safety_stock: safetyStock, image_url: pendingImageUrl }).eq('sku', p.sku);
     if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
     if (priceChanged) {
-      await sb.from('price_changes').insert({ barcode: p.barcode, name, prev_price: p.price, new_price: price, changed_by: session.user.id });
+      await sb.from('price_changes').insert({ sku: p.sku, barcode: p.barcode, name, prev_price: p.price, new_price: price, changed_by: session.user.id });
     }
     showToast('✅ บันทึกการแก้ไขสำเร็จ!');
   } else {
@@ -2481,12 +2480,12 @@ async function saveNewProduct() {
     if (demoProducts.some(p => p.barcode === barcode)) { showToast('⚠️ Barcode นี้มีอยู่แล้ว'); return; }
     const cost = parseFloat(document.getElementById('newCost').value) || 0;
     const stock = parseInt(document.getElementById('newStock').value) || 0;
-    const { error: insErr } = await sb.from('products').insert({
+    const { data: insData, error: insErr } = await sb.from('products').insert({
       barcode, name, brand: name, cat, price, emoji: '📦', safety_stock: safetyStock, manual_gen: pendingManualGen, image_url: pendingImageUrl,
-    });
+    }).select('sku').single();
     if (insErr) { showToast('⚠️ เพิ่มสินค้าไม่สำเร็จ: ' + insErr.message); return; }
     if (stock > 0) {
-      await sb.from('product_lots').insert({ barcode, qty: stock, cost, received_by: session.user.id });
+      await sb.from('product_lots').insert({ sku: insData.sku, barcode, qty: stock, cost, received_by: session.user.id });
     }
     showToast('✅ เพิ่มสินค้าสำเร็จ!');
   }
