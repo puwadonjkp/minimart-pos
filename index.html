@@ -747,8 +747,33 @@ body {
 .kpi-sub { font-size: 12px; color: var(--green); margin-top: 4px; }
 
 .report-2col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; align-items: start; }
 .report-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
 .report-card-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); margin-bottom: 16px; }
+
+/* ===== DATE RANGE BAR (ใช้ร่วมกันหน้า รายงาน / รายการขาย / Basket) ===== */
+.range-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ===== SALES PAGE (master list + slide-in detail panel) ===== */
+#page-sales { flex-direction: row; overflow: hidden; }
+.sales-list-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+.sales-detail-pane {
+  width: 0; flex-shrink: 0; overflow: hidden;
+  border-left: 1px solid var(--border); background: var(--surface);
+  display: flex; flex-direction: column;
+  transition: width 0.28s ease;
+}
+.sales-detail-pane.open { width: 440px; max-width: 90vw; }
+.sales-detail-header {
+  padding: 16px 18px; border-bottom: 1px solid var(--border); background: var(--surface2);
+  display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+.sales-detail-body { flex: 1; min-height: 0; overflow-y: auto; }
+.sales-detail-actions { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
+.status-badge-voided { background: #fdecea; color: var(--red); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+.status-badge-ok { background: #e8f4e8; color: var(--green); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+tr.sale-row-voided { opacity: 0.5; }
+tr.sale-row-active { background: #e8f4e8; }
 
 /* Bar chart */
 .bar-chart { display: flex; flex-direction: column; gap: 10px; }
@@ -827,10 +852,25 @@ body {
 .bb-label svg { flex-shrink: 0; }
 .bb-label .bb-code { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #444; margin-top: 4px; }
 
+/* ===== RECEIPT (ใบเสร็จ — พิมพ์อัตโนมัติหลังชำระเงิน หรือย้อนพิมพ์จากรายการขาย) ===== */
+.receipt-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 24px; }
+.receipt-overlay.open { display: flex; }
+.receipt-paper { background: #fff; color: #000; width: 320px; padding: 20px 18px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; line-height: 1.6; border-radius: 4px; }
+.receipt-paper .r-shop { text-align: center; font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+.receipt-paper .r-sub { text-align: center; font-size: 11px; color: #555; margin-bottom: 10px; }
+.receipt-paper hr { border: none; border-top: 1px dashed #999; margin: 8px 0; }
+.receipt-paper .r-row { display: flex; justify-content: space-between; gap: 8px; }
+.receipt-paper .r-item-name { flex: 1; }
+.receipt-paper .r-total-row { font-weight: 700; font-size: 14px; }
+.receipt-toolbar { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+
 @media print {
   body * { visibility: hidden; }
   .barcode-book-overlay, .barcode-book-overlay * { visibility: visible; }
   .barcode-book-overlay { position: absolute; inset: 0; }
+  .receipt-overlay, .receipt-overlay * { visibility: visible; }
+  .receipt-overlay { position: absolute; inset: 0; background: #fff; display: block !important; }
+  .receipt-paper { margin: 0 auto; }
   .no-print { display: none !important; }
   .bb-grid { padding: 0; max-width: none; }
   .bb-label { break-inside: avoid; padding-block: 20px; }
@@ -910,6 +950,12 @@ body {
   /* Report 1 col */
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .report-2col { grid-template-columns: 1fr; }
+  .report-grid { grid-template-columns: 1fr; }
+
+  /* Sales page: detail panel takes the full screen on mobile instead of
+     sharing width with the list — #page-sales.detail-open is toggled by JS */
+  #page-sales.detail-open .sales-list-pane { display: none; }
+  .sales-detail-pane.open { width: 100%; max-width: none; }
 
   /* Architecture page scroll friendly */
   #page-arch { padding: 16px; }
@@ -1227,52 +1273,85 @@ body {
   <div class="bb-grid" id="bbGrid"></div>
 </div>
 
-<!-- ===== REPORT PAGE ===== -->
-<div class="page" id="page-report">
-  <div class="report-header">
-    <select class="form-input" style="width:160px; padding:9px 12px">
-      <option>วันนี้</option><option>สัปดาห์นี้</option><option>เดือนนี้</option>
-    </select>
-    <button class="btn btn-outline">📤 Export PDF</button>
-    <button class="btn btn-outline">📧 ส่ง Email</button>
-  </div>
-  <div class="report-content">
-    <div class="kpi-grid" id="reportKpiGrid"></div>
-    <div class="report-2col">
-      <div class="report-card">
-        <div class="report-card-title">ยอดขายรายชั่วโมง</div>
-        <div class="bar-chart" id="hourlyChart"></div>
-      </div>
-      <div class="report-card">
-        <div class="report-card-title">สินค้าขายดี Top 5</div>
-        <div class="top-list" id="topProducts"></div>
-      </div>
-    </div>
-    <div class="report-card">
-      <div class="report-card-title">🧾 ประวัติการขาย (บิลล่าสุด) — กดแถวเพื่อดูรายละเอียด</div>
-      <div class="inv-table-wrap" style="padding:0">
-        <table class="inv-table">
-          <thead><tr><th>วันที่/เวลา</th><th>แคชเชียร์</th><th>จำนวนรายการ</th><th>ยอดรวม</th><th>กำไรจริง (FIFO)</th></tr></thead>
-          <tbody id="salesTicketBody"></tbody>
-        </table>
-      </div>
+<!-- ===== RECEIPT OVERLAY (ใบเสร็จ) ===== -->
+<div class="receipt-overlay" id="receiptOverlay">
+  <div>
+    <div class="receipt-paper" id="receiptPaper"></div>
+    <div class="receipt-toolbar no-print">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+      <button class="btn btn-outline" onclick="closeReceipt()">✕ ปิด</button>
     </div>
   </div>
 </div>
 
-<!-- Sale Ticket Detail Modal -->
-<div class="modal-overlay" id="ticketModal">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-title">🧾 รายละเอียดบิล <span id="ticketId" style="color:var(--text2);font-weight:400;font-size:13px"></span></div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:12px" id="ticketMeta"></div>
-    <div class="inv-table-wrap" style="padding:0;max-height:320px">
+<!-- ===== REPORT PAGE (ภาพรวม) ===== -->
+<div class="page" id="page-report">
+  <div class="report-header">
+    <div class="range-bar" id="reportRangeBar"></div>
+  </div>
+  <div class="report-content" id="reportContent">
+    <div class="kpi-grid" id="reportKpiGrid"></div>
+    <div class="report-grid" id="reportChartsGrid"></div>
+  </div>
+</div>
+
+<!-- ===== SALES PAGE (รายการขาย — master list + slide-in detail) ===== -->
+<div class="page" id="page-sales">
+  <div class="sales-list-pane">
+    <div class="inv-toolbar">
+      <div class="range-bar" id="salesRangeBar" style="flex:1"></div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text2);white-space:nowrap">
+        <input type="checkbox" id="salesShowVoided" onchange="renderSalesTable()"> แสดงบิลที่ยกเลิกด้วย
+      </label>
+    </div>
+    <div class="inv-table-wrap" style="flex:1">
       <table class="inv-table">
-        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ราคา/ชิ้น</th><th>ต้นทุน FIFO</th><th>กำไร</th></tr></thead>
-        <tbody id="ticketItemsBody"></tbody>
+        <thead><tr>
+          <th class="sortable" data-col="sold_at" onclick="sortSales('sold_at')">วันที่/เวลา <span class="sort-arrow">⇅</span></th>
+          <th class="sortable" data-col="sold_by_name" onclick="sortSales('sold_by_name')">แคชเชียร์ <span class="sort-arrow">⇅</span></th>
+          <th class="sortable" data-col="count" onclick="sortSales('count')">จำนวนรายการ <span class="sort-arrow">⇅</span></th>
+          <th class="sortable" data-col="total" onclick="sortSales('total')">ยอดรวม <span class="sort-arrow">⇅</span></th>
+          <th class="sortable" data-col="profit" onclick="sortSales('profit')">กำไร <span class="sort-arrow">⇅</span></th>
+          <th>สถานะ</th>
+        </tr></thead>
+        <tbody id="salesTableBody"></tbody>
       </table>
     </div>
-    <div class="modal-actions">
-      <button class="btn btn-outline" style="flex:1" onclick="closeTicketModal()">ปิด</button>
+  </div>
+  <div class="sales-detail-pane" id="salesDetailPane">
+    <div class="sales-detail-header">
+      <div><strong>🧾 รายละเอียดบิล</strong> <span id="salesDetailId" style="color:var(--text2);font-weight:400;font-size:12px"></span></div>
+      <button class="btn btn-outline" style="font-size:12px;padding:5px 10px" onclick="closeSalesDetail()">✕ ปิด</button>
+    </div>
+    <div style="padding:12px 18px 0;font-size:13px;color:var(--text2)" id="salesDetailMeta"></div>
+    <div class="sales-detail-body">
+      <div class="inv-table-wrap" style="padding:12px 18px">
+        <table class="inv-table">
+          <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ราคา/ชิ้น</th><th>ต้นทุน FIFO</th><th>กำไร</th></tr></thead>
+          <tbody id="salesDetailItemsBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="sales-detail-actions" id="salesDetailActions"></div>
+  </div>
+</div>
+
+<!-- ===== MARKET BASKET ANALYSIS PAGE ===== -->
+<div class="page" id="page-basket">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">🧺 Market Basket Analysis</div>
+  <div style="font-size:14px; color:var(--text2)">สินค้าไหนมักถูกซื้อพร้อมกัน วิเคราะห์จากบิลขายจริง (ไม่รวมบิลที่ถูกยกเลิก)</div>
+  <div class="range-bar" id="basketRangeBar"></div>
+  <div class="kpi-grid" id="basketKpiGrid" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div class="report-card">
+    <div class="report-card-title">คู่สินค้าที่ซื้อพร้อมกันบ่อยที่สุด — เรียงตาม Lift (ยิ่งมาก ยิ่งซื้อคู่กันบ่อยกว่าสุ่มเอง)</div>
+    <div class="inv-table-wrap" style="padding:0">
+      <table class="inv-table">
+        <thead><tr>
+          <th>สินค้า A</th><th>สินค้า B</th><th>จำนวนบิลที่ซื้อคู่กัน</th>
+          <th>Support</th><th>Confidence (A→B)</th><th>Confidence (B→A)</th><th>Lift</th><th>ยอดขายรวมคู่นี้</th>
+        </tr></thead>
+        <tbody id="basketTableBody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -1404,6 +1483,15 @@ body {
       <div class="report-card-title">หน้า POS</div>
       <div class="form-label" style="margin-bottom:8px">สัดส่วนรูปการ์ดสินค้า (กว้าง:สูง)</div>
       <div class="ratio-chip-row" id="cardRatioChips"></div>
+    </div>
+
+    <div class="report-card">
+      <div class="report-card-title">ใบเสร็จ</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="stAutoPrintReceipt" style="width:18px;height:18px;cursor:pointer" onchange="toggleAutoPrintReceipt(this.checked)">
+        <span style="font-size:14px">🖨️ พิมพ์ใบเสร็จอัตโนมัติทุกครั้งหลังชำระเงิน</span>
+      </label>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px">ปิดไว้ได้ถ้าไม่อยากพิมพ์ทุกบิล — ย้อนพิมพ์บิลไหนทีหลังได้ที่หน้า "รายการขาย"</div>
     </div>
 
     <div class="report-card">
@@ -1732,7 +1820,7 @@ function updateClock() {
 setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
-const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage' };
+const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', sales: 'report_view', basket: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage' };
 // navbar เริ่มรก เลยจัดกลุ่ม: คลังสินค้า/Master Data/Manual Barcode รวมเป็น "จัดการสินค้า"
 // และผู้ใช้งาน/ตั้งค่าระบบ/สิทธิ์การเข้าถึง/Architecture รวมเป็น "ตั้งค่า" — เหลือ 5 ปุ่มบนแถบหลัก
 const NAV_ITEMS = [
@@ -1742,7 +1830,11 @@ const NAV_ITEMS = [
       { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
       { key: 'manualbc', icon: '🏷️', label: 'Manual Barcode', mobileLabel: 'บาร์โค้ด', perm: 'master_manual_gen' },
     ] },
-  { key: 'report', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', perm: 'report_view' },
+  { key: 'reportMenu', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', group: true, children: [
+      { key: 'report', icon: '📊', label: 'ภาพรวม', mobileLabel: 'ภาพรวม', perm: 'report_view' },
+      { key: 'sales', icon: '🧾', label: 'รายการขาย', mobileLabel: 'บิล', perm: 'report_view' },
+      { key: 'basket', icon: '🧺', label: 'Market Basket Analysis', mobileLabel: 'Basket', perm: 'report_view' },
+    ] },
   { key: 'manager', icon: '📋', label: 'จัดการ', mobileLabel: 'จัดการ', perm: 'manager_view', badge: true },
   { key: 'settingsMenu', icon: '⚙️', label: 'ตั้งค่า', mobileLabel: 'ตั้งค่า', group: true, children: [
       { key: 'users', icon: '👥', label: 'ผู้ใช้งาน', mobileLabel: 'ผู้ใช้', perm: 'users_manage' },
@@ -1824,6 +1916,8 @@ function showPage(name, el) {
   if (name === 'inventory') renderInventory();
   if (name === 'master') renderMaster();
   if (name === 'report') renderReport();
+  if (name === 'sales') renderSalesPage();
+  if (name === 'basket') renderBasketPage();
   if (name === 'manager') renderManager();
   if (name === 'users') renderUsers();
   if (name === 'permissions') renderPermissionsPage();
@@ -1905,9 +1999,9 @@ async function saveMyProfile() {
 document.getElementById('myProfileModal').addEventListener('click', function(e) { if(e.target===this) closeMyProfile(); });
 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
-let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3' };
+let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3', auto_print_receipt: false };
 const CARD_RATIOS = ['1/1', '4/5', '2/3', '1/2'];
-function NAV_ITEMS_DEFAULT_ORDER() { return ['pos','products','report','manager','settingsMenu']; }
+function NAV_ITEMS_DEFAULT_ORDER() { return ['pos','products','reportMenu','manager','settingsMenu']; }
 
 const SETTINGS_CACHE_KEY = 'mm_settings_cache_v1';
 async function loadSettings() {
@@ -1972,6 +2066,13 @@ async function setCardRatio(ratio) {
   showToast('✅ บันทึกสัดส่วนการ์ดแล้ว');
 }
 
+async function toggleAutoPrintReceipt(checked) {
+  const { error } = await sb.from('app_settings').update({ auto_print_receipt: checked, updated_by: session.user.id }).eq('id', true);
+  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
+  await loadSettings();
+  showToast(checked ? '✅ เปิดพิมพ์ใบเสร็จอัตโนมัติแล้ว' : '✅ ปิดพิมพ์ใบเสร็จอัตโนมัติแล้ว');
+}
+
 async function moveNavItem(key, dir) {
   const order = navOrderedItems().map(n => n.key);
   const i = order.indexOf(key);
@@ -1996,6 +2097,7 @@ function renderSettingsPage() {
     `<div class="ratio-chip ${r===curRatio?'active':''}" onclick="setCardRatio('${r}')">${r}</div>`
   ).join('');
   document.getElementById('faviconPreview').innerHTML = appSettings.favicon_url ? `<img src="${appSettings.favicon_url}">` : '🔖';
+  document.getElementById('stAutoPrintReceipt').checked = !!appSettings.auto_print_receipt;
 
   const items = navOrderedItems();
   document.getElementById('navOrderList').innerHTML = items.map((n,i) => `
@@ -2262,7 +2364,7 @@ async function processSale() {
   // ตัดสต็อกแบบ FIFO + บันทึกการขายทั้งหมด ทำเป็นธุรกรรมเดียวบนเซิร์ฟเวอร์ (RPC `sell`)
   // กันสองเครื่องขายสินค้าตัวเดียวกันพร้อมกันแล้วตัดสต็อกชนกัน
   const items = cart.map(c => ({ sku: c.sku, barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
-  const { error } = await sb.rpc('sell', { p_items: items, p_pay: pay });
+  const { data, error } = await sb.rpc('sell', { p_items: items, p_pay: pay });
   if (error) { showToast('⚠️ ชำระเงินไม่สำเร็จ: ' + error.message); return; }
 
   showToast(`✅ ชำระเสร็จ เงินทอน ฿${(pay-total).toFixed(2)}`);
@@ -2270,6 +2372,7 @@ async function processSale() {
   await loadProducts();
   renderProducts(demoProducts);
   renderManager();
+  if (appSettings.auto_print_receipt && data && data.sale_id) printReceipt(data.sale_id);
 }
 
 // ========== INVENTORY ==========
@@ -2488,89 +2591,239 @@ function renderMaster() {
 }
 
 // ========== REPORT (คำนวณจากยอดขายจริงของวันนี้) ==========
+// ========== DATE RANGE (ใช้ร่วมกันหน้า รายงาน / รายการขาย / Basket) ==========
+let reportRange = { preset: 'today', from: null, to: null };
+function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
+function endOfDay(d) { const x = new Date(d); x.setHours(23,59,59,999); return x; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+function startOfWeek(d) { const x = startOfDay(d); const day = x.getDay(); return addDays(x, -day); } // อาทิตย์เป็นวันแรก
+function startOfMonth(d) { const x = startOfDay(d); x.setDate(1); return x; }
+function ymd(d) { return d.toISOString().slice(0,10); }
+function getRangeDates() {
+  const now = new Date();
+  if (reportRange.preset === '7d') return { from: startOfDay(addDays(now,-6)), to: endOfDay(now) };
+  if (reportRange.preset === 'week') return { from: startOfWeek(now), to: endOfDay(now) };
+  if (reportRange.preset === 'month') return { from: startOfMonth(now), to: endOfDay(now) };
+  if (reportRange.preset === 'custom' && reportRange.from && reportRange.to) {
+    return { from: startOfDay(new Date(reportRange.from)), to: endOfDay(new Date(reportRange.to)) };
+  }
+  return { from: startOfDay(now), to: endOfDay(now) }; // 'today' default
+}
+const RANGE_PRESET_LABELS = { today: 'วันนี้', '7d': '7 วันล่าสุด', week: 'สัปดาห์นี้', month: 'เดือนนี้', custom: 'กำหนดเอง' };
+function renderRangeBar(containerId, onApplyFn) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const isCustom = reportRange.preset === 'custom';
+  el.innerHTML = `
+    <select class="form-input" style="width:150px" id="${containerId}-preset">
+      ${Object.keys(RANGE_PRESET_LABELS).map(k => `<option value="${k}" ${k===reportRange.preset?'selected':''}>${RANGE_PRESET_LABELS[k]}</option>`).join('')}
+    </select>
+    <input type="date" class="form-input" style="width:150px;${isCustom?'':'display:none'}" id="${containerId}-from" value="${reportRange.from||''}">
+    <input type="date" class="form-input" style="width:150px;${isCustom?'':'display:none'}" id="${containerId}-to" value="${reportRange.to||''}">
+    <button class="btn btn-primary" style="${isCustom?'':'display:none'}" id="${containerId}-apply">ตกลง</button>
+  `;
+  const presetEl = document.getElementById(`${containerId}-preset`);
+  const fromEl = document.getElementById(`${containerId}-from`);
+  const toEl = document.getElementById(`${containerId}-to`);
+  const applyEl = document.getElementById(`${containerId}-apply`);
+  presetEl.addEventListener('change', () => {
+    reportRange.preset = presetEl.value;
+    const nowCustom = reportRange.preset === 'custom';
+    fromEl.style.display = toEl.style.display = applyEl.style.display = nowCustom ? '' : 'none';
+    if (!nowCustom) onApplyFn();
+  });
+  applyEl.addEventListener('click', () => {
+    if (!fromEl.value || !toEl.value) { showToast('⚠️ เลือกวันที่ให้ครบ'); return; }
+    reportRange.from = fromEl.value; reportRange.to = toEl.value;
+    onApplyFn();
+  });
+}
+
+// ========== REPORT PAGE (ภาพรวม) ==========
 async function renderReport() {
-  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-  const { data: todaySales } = await sb.from('sales').select('id, total, profit, sold_at').gte('sold_at', todayStart.toISOString());
-  const rows = todaySales || [];
+  renderRangeBar('reportRangeBar', renderReport);
+  const { from, to } = getRangeDates();
+  const spanDays = Math.round((to - from) / 86400000) + 1;
+
+  const { data: rowsRaw } = await sb.from('sales')
+    .select('id, total, profit, total_cost, sold_at, sold_by_name, voided')
+    .gte('sold_at', from.toISOString()).lte('sold_at', to.toISOString());
+  const all = rowsRaw || [];
+  const rows = all.filter(r => !r.voided);
+  const voidedRows = all.filter(r => r.voided);
+
   const total = rows.reduce((s,x)=>s+Number(x.total),0);
   const bills = rows.length;
   const avgBill = bills ? total/bills : 0;
   const profit = rows.reduce((s,x)=>s+Number(x.profit),0);
+  const cost = rows.reduce((s,x)=>s+Number(x.total_cost),0);
   const margin = total ? (profit/total*100) : 0;
 
+  const saleIds = rows.map(r => r.id);
+  const { data: itemsRaw } = saleIds.length
+    ? await sb.from('sale_items').select('sale_id, sku, name, qty, price, cost').in('sale_id', saleIds)
+    : { data: [] };
+  const items = itemsRaw || [];
+  const totalQty = items.reduce((s,it)=>s+it.qty, 0);
+
   document.getElementById('reportKpiGrid').innerHTML = `
-    <div class="kpi-card"><div class="kpi-label">ยอดขายวันนี้</div><div class="kpi-val">฿${total.toFixed(2)}</div></div>
-    <div class="kpi-card" style="border-top-color:var(--accent3)"><div class="kpi-label">จำนวนบิล</div><div class="kpi-val">${bills}</div></div>
+    <div class="kpi-card"><div class="kpi-label">ยอดขายรวม</div><div class="kpi-val">฿${total.toFixed(2)}</div></div>
+    <div class="kpi-card" style="border-top-color:var(--accent3)"><div class="kpi-label">จำนวนบิล</div><div class="kpi-val">${bills}</div>${voidedRows.length ? `<div class="kpi-sub" style="color:var(--red)">+ ${voidedRows.length} บิลที่ยกเลิก</div>` : ''}</div>
     <div class="kpi-card" style="border-top-color:var(--blue)"><div class="kpi-label">เฉลี่ย/บิล</div><div class="kpi-val">฿${avgBill.toFixed(0)}</div></div>
     <div class="kpi-card" style="border-top-color:var(--red)"><div class="kpi-label">กำไรขั้นต้น (จริง)</div><div class="kpi-val">฿${profit.toFixed(2)}</div><div class="kpi-sub" style="color:var(--text2)">${margin.toFixed(1)}% margin</div></div>
+    <div class="kpi-card" style="border-top-color:#9b59b6"><div class="kpi-label">ต้นทุนรวม (FIFO)</div><div class="kpi-val">฿${cost.toFixed(2)}</div></div>
+    <div class="kpi-card" style="border-top-color:#16a085"><div class="kpi-label">จำนวนชิ้นที่ขาย</div><div class="kpi-val">${totalQty}</div></div>
   `;
 
-  const hourBuckets = {};
-  rows.forEach(s => { const h = new Date(s.sold_at).getHours(); hourBuckets[h] = (hourBuckets[h]||0) + Number(s.total); });
-  const hourKeys = Object.keys(hourBuckets).sort((a,b)=>a-b);
-  const max = Math.max(1, ...Object.values(hourBuckets));
-  document.getElementById('hourlyChart').innerHTML = hourKeys.length ? hourKeys.map(h => `
-    <div class="bar-row">
-      <div class="bar-label">${h}:00 น.</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${hourBuckets[h]/max*100}%"></div></div>
-      <div class="bar-val">฿${hourBuckets[h].toFixed(0)}</div>
-    </div>`).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายวันนี้</div>`;
+  // 1) ยอดขายตามช่วงเวลา: ถ้าช่วงที่เลือก <= 1 วัน โชว์เป็นรายชั่วโมง มากกว่านั้นโชว์เป็นรายวัน
+  let timeChartHtml;
+  if (spanDays <= 1) {
+    const buckets = {};
+    rows.forEach(s => { const h = new Date(s.sold_at).getHours(); buckets[h] = (buckets[h]||0) + Number(s.total); });
+    const keys = Object.keys(buckets).sort((a,b)=>a-b);
+    const max = Math.max(1, ...Object.values(buckets));
+    timeChartHtml = keys.length ? keys.map(h => `
+      <div class="bar-row"><div class="bar-label">${h}:00 น.</div><div class="bar-track"><div class="bar-fill" style="width:${buckets[h]/max*100}%"></div></div><div class="bar-val">฿${buckets[h].toFixed(0)}</div></div>`).join('')
+      : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
+  } else {
+    const buckets = {};
+    rows.forEach(s => { const d = ymd(new Date(s.sold_at)); buckets[d] = (buckets[d]||0) + Number(s.total); });
+    const keys = Object.keys(buckets).sort();
+    const max = Math.max(1, ...Object.values(buckets));
+    timeChartHtml = keys.length ? keys.map(d => `
+      <div class="bar-row"><div class="bar-label">${new Date(d).toLocaleDateString('th-TH',{day:'numeric',month:'short'})}</div><div class="bar-track"><div class="bar-fill" style="width:${buckets[d]/max*100}%"></div></div><div class="bar-val">฿${buckets[d].toFixed(0)}</div></div>`).join('')
+      : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
+  }
 
-  const saleIds = rows.map(r => r.id);
-  const { data: todayItems } = saleIds.length
-    ? await sb.from('sale_items').select('name, qty, price').in('sale_id', saleIds)
-    : { data: [] };
-  const productTotals = {};
-  (todayItems || []).forEach(it => {
-    if (!productTotals[it.name]) productTotals[it.name] = { qty: 0, amt: 0 };
-    productTotals[it.name].qty += it.qty;
-    productTotals[it.name].amt += it.price * it.qty;
+  // 2) ยอดขายตามวันในสัปดาห์ (อาทิตย์-เสาร์) — เห็น pattern ว่าวันไหนขายดี
+  const dowLabels = ['อา','จ','อ','พ','พฤ','ศ','ส'];
+  const dowBuckets = [0,0,0,0,0,0,0];
+  rows.forEach(s => { dowBuckets[new Date(s.sold_at).getDay()] += Number(s.total); });
+  const dowMax = Math.max(1, ...dowBuckets);
+  const dowChartHtml = dowLabels.map((lbl,i) => `
+    <div class="bar-row"><div class="bar-label">${lbl}</div><div class="bar-track"><div class="bar-fill" style="width:${dowBuckets[i]/dowMax*100}%;background:#9b59b6"></div></div><div class="bar-val">฿${dowBuckets[i].toFixed(0)}</div></div>`).join('');
+
+  // 3) สินค้าขายดี — Top 10 ตามยอดขาย + กำไร
+  const productAgg = {};
+  items.forEach(it => {
+    if (!productAgg[it.name]) productAgg[it.name] = { qty: 0, amt: 0, profit: 0 };
+    productAgg[it.name].qty += it.qty;
+    productAgg[it.name].amt += it.price * it.qty;
+    productAgg[it.name].profit += it.price * it.qty - Number(it.cost);
   });
-  const tops = Object.entries(productTotals).map(([name,v]) => ({ name, ...v })).sort((a,b)=>b.amt-a.amt).slice(0,5);
   const rankClass = ['gold','silver','bronze','',''];
-  document.getElementById('topProducts').innerHTML = tops.length ? tops.map((t,i) => `
+  const topByRevenue = Object.entries(productAgg).map(([name,v]) => ({ name, ...v })).sort((a,b)=>b.amt-a.amt).slice(0,10);
+  const topByProfit = Object.entries(productAgg).map(([name,v]) => ({ name, ...v })).sort((a,b)=>b.profit-a.profit).slice(0,10);
+  const topListHtml = (list, valKey, prefix) => list.length ? list.map((t,i) => `
     <div class="top-item">
-      <div class="top-rank ${rankClass[i]}">${i+1}</div>
+      <div class="top-rank ${rankClass[i]||''}">${i+1}</div>
       <div class="top-name">${t.name}</div>
       <div class="top-qty">${t.qty} ชิ้น</div>
-      <div class="top-amt">฿${t.amt.toFixed(0)}</div>
-    </div>`).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายวันนี้</div>`;
+      <div class="top-amt">${prefix}${t[valKey].toFixed(0)}</div>
+    </div>`).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
 
-  renderSalesTickets();
+  // 4) ยอดขายตามหมวดหมู่ — เทียบ category จาก demoProducts (sku -> cat)
+  const catAgg = {};
+  items.forEach(it => {
+    const p = demoProducts.find(x => x.sku === it.sku);
+    const cat = p ? p.cat : 'อื่นๆ';
+    catAgg[cat] = (catAgg[cat] || 0) + it.price * it.qty;
+  });
+  const catMax = Math.max(1, ...Object.values(catAgg));
+  const catChartHtml = Object.keys(catAgg).length ? Object.entries(catAgg).sort((a,b)=>b[1]-a[1]).map(([cat,amt]) => `
+    <div class="bar-row"><div class="bar-label">${cat}</div><div class="bar-track"><div class="bar-fill" style="width:${amt/catMax*100}%;background:var(--accent3)"></div></div><div class="bar-val">฿${amt.toFixed(0)}</div></div>`).join('')
+    : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
+
+  // 5) ยอดขายแยกตามแคชเชียร์ — ใครขายไปเท่าไหร่
+  const cashierAgg = {};
+  rows.forEach(s => {
+    const name = s.sold_by_name || 'ไม่ทราบชื่อ';
+    if (!cashierAgg[name]) cashierAgg[name] = { bills: 0, total: 0, profit: 0 };
+    cashierAgg[name].bills++; cashierAgg[name].total += Number(s.total); cashierAgg[name].profit += Number(s.profit);
+  });
+  const cashierRows = Object.entries(cashierAgg).sort((a,b)=>b[1].total-a[1].total);
+  const cashierTableHtml = cashierRows.length ? `
+    <table class="inv-table"><thead><tr><th>แคชเชียร์</th><th>จำนวนบิล</th><th>ยอดขาย</th><th>กำไร</th></tr></thead><tbody>
+      ${cashierRows.map(([name,v]) => `<tr><td>${name}</td><td>${v.bills}</td><td>฿${v.total.toFixed(2)}</td><td style="color:var(--accent);font-weight:700">฿${v.profit.toFixed(2)}</td></tr>`).join('')}
+    </tbody></table>` : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
+
+  document.getElementById('reportChartsGrid').innerHTML = `
+    <div class="report-card"><div class="report-card-title">ยอดขายตาม${spanDays<=1?'ชั่วโมง':'วัน'}</div><div class="bar-chart">${timeChartHtml}</div></div>
+    <div class="report-card"><div class="report-card-title">ยอดขายตามวันในสัปดาห์</div><div class="bar-chart">${dowChartHtml}</div></div>
+    <div class="report-card"><div class="report-card-title">ยอดขายตามหมวดหมู่</div><div class="bar-chart">${catChartHtml}</div></div>
+    <div class="report-card"><div class="report-card-title">สินค้าขายดี Top 10 (ยอดขาย)</div><div class="top-list">${topListHtml(topByRevenue,'amt','฿')}</div></div>
+    <div class="report-card"><div class="report-card-title">สินค้าทำกำไรดีที่สุด Top 10</div><div class="top-list">${topListHtml(topByProfit,'profit','฿')}</div></div>
+    <div class="report-card"><div class="report-card-title">ยอดขายแยกตามแคชเชียร์</div>${cashierTableHtml}</div>
+  `;
 }
 
-// ========== SALE TICKETS (ประวัติการขายแบบบิล พร้อมรายละเอียด FIFO cost ต่อชิ้น) ==========
-async function renderSalesTickets() {
-  const { data: tickets } = await sb.from('sales')
-    .select('id, total, profit, sold_at, sold_by, sold_by_name')
-    .order('sold_at', { ascending: false }).limit(50);
-  document.getElementById('salesTicketBody').innerHTML = (tickets && tickets.length) ? tickets.map(t => `
-    <tr style="cursor:pointer" onclick="openTicketDetail('${t.id}')">
-      <td style="font-size:12px">${new Date(t.sold_at).toLocaleString('th-TH')}</td>
-      <td>${t.sold_by_name || '—'}</td>
-      <td id="ticketCount-${t.id}">…</td>
-      <td>฿${Number(t.total).toFixed(2)}</td>
-      <td style="color:var(--accent);font-weight:700">฿${Number(t.profit).toFixed(2)}</td>
-    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:16px">— ยังไม่มีการขาย —</td></tr>`;
+// ========== SALES PAGE (รายการขาย — master list + slide-in detail) ==========
+let salesRows = [];
+let salesSort = { col: 'sold_at', dir: -1 };
+let currentSalesDetailId = null;
 
-  // เติมจำนวนรายการต่อบิลทีหลัง (query เดียวรวมทุกบิลที่โชว์ แทนที่จะยิงทีละบิล)
-  if (tickets && tickets.length) {
-    const ids = tickets.map(t => t.id);
+async function renderSalesPage() {
+  renderRangeBar('salesRangeBar', renderSalesPage);
+  const { from, to } = getRangeDates();
+  const { data: rows } = await sb.from('sales')
+    .select('id, total, profit, sold_at, sold_by_name, voided, void_reason')
+    .gte('sold_at', from.toISOString()).lte('sold_at', to.toISOString());
+  const list = rows || [];
+  const ids = list.map(r => r.id);
+  const counts = {};
+  if (ids.length) {
     const { data: items } = await sb.from('sale_items').select('sale_id').in('sale_id', ids);
-    const counts = {};
     (items || []).forEach(it => { counts[it.sale_id] = (counts[it.sale_id]||0) + 1; });
-    ids.forEach(id => { const el = document.getElementById(`ticketCount-${id}`); if (el) el.textContent = (counts[id]||0) + ' รายการ'; });
   }
+  salesRows = list.map(r => ({ ...r, count: counts[r.id] || 0 }));
+  renderSalesTable();
 }
 
-async function openTicketDetail(saleId) {
+function sortSales(col) {
+  salesSort = salesSort.col === col ? { col, dir: -salesSort.dir } : { col, dir: col === 'sold_at' ? -1 : 1 };
+  renderSalesTable();
+}
+
+function renderSalesTable() {
+  const showVoided = document.getElementById('salesShowVoided')?.checked;
+  let list = showVoided ? salesRows : salesRows.filter(r => !r.voided);
+  const getters = {
+    sold_at: r => new Date(r.sold_at).getTime(), sold_by_name: r => r.sold_by_name || '',
+    count: r => r.count, total: r => Number(r.total), profit: r => Number(r.profit),
+  };
+  const get = getters[salesSort.col];
+  list = list.slice().sort((a,b) => { const va=get(a), vb=get(b); const cmp = typeof va==='string'?va.localeCompare(vb,'th'):va-vb; return cmp*salesSort.dir; });
+
+  document.querySelectorAll('#page-sales th.sortable').forEach(th => {
+    th.classList.toggle('active', th.getAttribute('data-col') === salesSort.col);
+    th.querySelector('.sort-arrow').textContent = th.getAttribute('data-col') === salesSort.col ? (salesSort.dir===1?'↑':'↓') : '⇅';
+  });
+
+  document.getElementById('salesTableBody').innerHTML = list.length ? list.map(r => `
+    <tr class="${r.voided?'sale-row-voided':''} ${r.id===currentSalesDetailId?'sale-row-active':''}" style="cursor:pointer" onclick="openSalesDetail('${r.id}')">
+      <td style="font-size:12px">${new Date(r.sold_at).toLocaleString('th-TH')}</td>
+      <td>${r.sold_by_name || '—'}</td>
+      <td>${r.count} รายการ</td>
+      <td>฿${Number(r.total).toFixed(2)}</td>
+      <td style="color:var(--accent);font-weight:700">฿${Number(r.profit).toFixed(2)}</td>
+      <td>${r.voided ? '<span class="status-badge-voided">ยกเลิกแล้ว</span>' : '<span class="status-badge-ok">ปกติ</span>'}</td>
+    </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:16px">— ไม่มีรายการขายในช่วงนี้ —</td></tr>`;
+}
+
+async function openSalesDetail(saleId) {
+  currentSalesDetailId = saleId;
+  renderSalesTable();
+  document.getElementById('page-sales').classList.add('detail-open');
+  document.getElementById('salesDetailPane').classList.add('open');
+
   const { data: sale } = await sb.from('sales').select('*').eq('id', saleId).single();
   const { data: items } = await sb.from('sale_items').select('*').eq('sale_id', saleId);
   if (!sale) return;
-  document.getElementById('ticketId').textContent = '#' + saleId.slice(0,8);
-  document.getElementById('ticketMeta').textContent =
-    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}`;
-  document.getElementById('ticketItemsBody').innerHTML = (items||[]).map(it => `
+  document.getElementById('salesDetailId').textContent = '#' + saleId.slice(0,8);
+  document.getElementById('salesDetailMeta').innerHTML =
+    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}` +
+    (sale.voided ? `<div style="color:var(--red);font-weight:700;margin-top:6px">❌ บิลนี้ถูกยกเลิกแล้ว${sale.void_reason ? ' — เหตุผล: ' + sale.void_reason : ''} (โดย ${sale.voided_by_name || '—'} เมื่อ ${new Date(sale.voided_at).toLocaleString('th-TH')})</div>` : '');
+  document.getElementById('salesDetailItemsBody').innerHTML = (items||[]).map(it => `
     <tr>
       <td>${it.name}</td>
       <td>${it.qty}</td>
@@ -2581,9 +2834,111 @@ async function openTicketDetail(saleId) {
     <tr style="font-weight:700;background:var(--surface2)">
       <td colspan="2">รวม</td><td>฿${Number(sale.total).toFixed(2)}</td><td>฿${Number(sale.total_cost).toFixed(2)}</td><td style="color:var(--accent)">฿${Number(sale.profit).toFixed(2)}</td>
     </tr>`;
-  document.getElementById('ticketModal').classList.add('open');
+
+  const canVoid = canManageCritical() && !sale.voided;
+  document.getElementById('salesDetailActions').innerHTML = `
+    <button class="btn btn-outline" style="flex:1" onclick="printReceipt('${saleId}')">🖨️ พิมพ์ใบเสร็จ</button>
+    ${canVoid ? `<button class="btn btn-outline" style="flex:1;color:var(--red);border-color:var(--red)" onclick="promptVoidSale('${saleId}')">❌ ยกเลิก/คืนเงิน</button>` : ''}
+  `;
 }
-function closeTicketModal() { document.getElementById('ticketModal').classList.remove('open'); }
+function closeSalesDetail() {
+  currentSalesDetailId = null;
+  document.getElementById('page-sales').classList.remove('detail-open');
+  document.getElementById('salesDetailPane').classList.remove('open');
+  renderSalesTable();
+}
+
+async function promptVoidSale(saleId) {
+  if (!canManageCritical()) return;
+  const reason = prompt('เหตุผลที่ยกเลิก/คืนเงินบิลนี้ (จะถูกบันทึกไว้):', '');
+  if (reason === null) return; // กดยกเลิก prompt
+  if (!confirm('ยืนยันยกเลิกบิลนี้ใช่หรือไม่? สต็อกของทุกชิ้นในบิลจะถูกคืนกลับเข้าระบบ และย้อนกลับไม่ได้')) return;
+  const { error } = await sb.rpc('void_sale', { p_sale_id: saleId, p_reason: reason || null });
+  if (error) { showToast('⚠️ ยกเลิกไม่สำเร็จ: ' + error.message); return; }
+  showToast('✅ ยกเลิกบิลแล้ว คืนสต็อกเรียบร้อย');
+  await loadProducts();
+  await renderSalesPage();
+  await openSalesDetail(saleId);
+}
+
+// ========== MARKET BASKET ANALYSIS ==========
+// วิเคราะห์เป็นคู่สินค้า (pairwise) — ครอบคลุม Support/Confidence/Lift/ยอดขายร่วม
+// ซึ่งเป็นมิติที่ใช้งานจริงได้ (ตัดสินใจวางสินค้าใกล้กัน/จัดโปรโมชั่นคู่) โดยไม่ลงลึกถึง itemset 3+ชิ้น
+// ที่ข้อมูลร้านขนาดนี้ยังไม่มีปริมาณมากพอจะให้ผลลัพธ์ที่มีนัยสำคัญทางสถิติ
+async function renderBasketPage() {
+  renderRangeBar('basketRangeBar', renderBasketPage);
+  const { from, to } = getRangeDates();
+
+  const { data: salesInRange } = await sb.from('sales')
+    .select('id, voided').gte('sold_at', from.toISOString()).lte('sold_at', to.toISOString());
+  const validSaleIds = (salesInRange || []).filter(s => !s.voided).map(s => s.id);
+
+  const { data: itemsRaw } = validSaleIds.length
+    ? await sb.from('sale_items').select('sale_id, name, qty, price').in('sale_id', validSaleIds)
+    : { data: [] };
+  const items = itemsRaw || [];
+
+  // แตกเป็น basket ต่อบิล (set ของชื่อสินค้าที่ไม่ซ้ำ + ยอดขายรวมของสินค้านั้นในบิลนั้น)
+  const basketMap = {};
+  items.forEach(it => {
+    (basketMap[it.sale_id] ||= new Map());
+    const m = basketMap[it.sale_id];
+    m.set(it.name, (m.get(it.name) || 0) + it.price * it.qty);
+  });
+  const baskets = Object.values(basketMap).filter(m => m.size >= 1);
+  const totalBaskets = baskets.length;
+
+  const singleCount = {};
+  const pairCount = {};
+  const pairRevenue = {};
+  baskets.forEach(basket => {
+    const names = [...basket.keys()].sort((a,b) => a.localeCompare(b,'th'));
+    names.forEach(n => { singleCount[n] = (singleCount[n]||0) + 1; });
+    for (let i = 0; i < names.length; i++) {
+      for (let j = i+1; j < names.length; j++) {
+        const key = names[i] + '␟' + names[j];
+        pairCount[key] = (pairCount[key] || 0) + 1;
+        pairRevenue[key] = (pairRevenue[key] || 0) + basket.get(names[i]) + basket.get(names[j]);
+      }
+    }
+  });
+
+  const totalItemsPerBasket = baskets.length ? baskets.reduce((s,m)=>s+m.size,0) / baskets.length : 0;
+  const multiItemBaskets = baskets.filter(m => m.size >= 2).length;
+
+  document.getElementById('basketKpiGrid').innerHTML = `
+    <div class="kpi-card"><div class="kpi-label">บิลทั้งหมดในช่วงนี้</div><div class="kpi-val">${totalBaskets}</div></div>
+    <div class="kpi-card" style="border-top-color:var(--blue)"><div class="kpi-label">บิลที่ซื้อ ≥ 2 ชนิด</div><div class="kpi-val">${multiItemBaskets}</div><div class="kpi-sub" style="color:var(--text2)">${totalBaskets?(multiItemBaskets/totalBaskets*100).toFixed(1):0}% ของบิลทั้งหมด</div></div>
+    <div class="kpi-card" style="border-top-color:var(--accent3)"><div class="kpi-label">เฉลี่ยชนิดสินค้า/บิล</div><div class="kpi-val">${totalItemsPerBasket.toFixed(1)}</div></div>
+    <div class="kpi-card" style="border-top-color:#9b59b6"><div class="kpi-label">คู่สินค้าที่พบ</div><div class="kpi-val">${Object.keys(pairCount).length}</div></div>
+  `;
+
+  const pairs = Object.entries(pairCount).map(([key, countAB]) => {
+    const [a, b] = key.split('␟');
+    const countA = singleCount[a] || 0, countB = singleCount[b] || 0;
+    const support = totalBaskets ? countAB / totalBaskets : 0;
+    const confAB = countA ? countAB / countA : 0;
+    const confBA = countB ? countAB / countB : 0;
+    const supportA = totalBaskets ? countA / totalBaskets : 0;
+    const supportB = totalBaskets ? countB / totalBaskets : 0;
+    const lift = (supportA * supportB) ? support / (supportA * supportB) : 0;
+    return { a, b, countAB, support, confAB, confBA, lift, revenue: pairRevenue[key] || 0 };
+  }).filter(p => p.countAB >= 2) // ตัด noise ของคู่ที่เจอแค่ครั้งเดียว
+    .sort((x,y) => y.lift - x.lift)
+    .slice(0, 30);
+
+  document.getElementById('basketTableBody').innerHTML = pairs.length ? pairs.map(p => `
+    <tr>
+      <td><strong>${p.a}</strong></td>
+      <td><strong>${p.b}</strong></td>
+      <td>${p.countAB} บิล</td>
+      <td>${(p.support*100).toFixed(1)}%</td>
+      <td>${(p.confAB*100).toFixed(1)}%</td>
+      <td>${(p.confBA*100).toFixed(1)}%</td>
+      <td style="color:${p.lift>1?'var(--green)':'var(--text2)'};font-weight:700">${p.lift.toFixed(2)}x</td>
+      <td>฿${p.revenue.toFixed(0)}</td>
+    </tr>`).join('') : `<tr><td colspan="8" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีข้อมูลพอให้วิเคราะห์ในช่วงนี้ (ต้องมีบิลที่ซื้อสินค้าคู่เดียวกันซ้ำอย่างน้อย 2 ครั้ง)</td></tr>`;
+}
 
 // ========== ADD / EDIT PRODUCT MODAL ==========
 let editingSku = null;
@@ -2685,7 +3040,6 @@ function closeModal() {
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
 document.getElementById('stockModal').addEventListener('click', function(e) { if(e.target===this) closeStockModal(); });
-document.getElementById('ticketModal').addEventListener('click', function(e) { if(e.target===this) closeTicketModal(); });
 
 // ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
 // รหัส Manual Barcode วิ่งต่อเนื่อง MB0001, MB0002, ... — หาเลขถัดไปจากตัวที่มีอยู่จริง
@@ -2741,6 +3095,33 @@ async function migrateToSequentialBarcode(sku) {
 }
 
 // ========== BARCODE BOOK (พิมพ์เฉพาะสินค้าที่ Manual Gen — ของมี barcode โรงงานอยู่แล้วไม่ต้องพิมพ์) ==========
+// ========== ใบเสร็จ (พิมพ์อัตโนมัติหลังชำระเงินถ้าเปิดไว้ในตั้งค่า หรือย้อนพิมพ์จากรายการขาย) ==========
+async function printReceipt(saleId) {
+  const { data: sale } = await sb.from('sales').select('*').eq('id', saleId).single();
+  const { data: items } = await sb.from('sale_items').select('*').eq('sale_id', saleId);
+  if (!sale) { showToast('⚠️ ไม่พบบิลนี้'); return; }
+  const itemsHtml = (items||[]).map(it => `
+    <div class="r-row"><span class="r-item-name">${it.name} x${it.qty}</span><span>฿${(it.price*it.qty).toFixed(2)}</span></div>
+  `).join('');
+  document.getElementById('receiptPaper').innerHTML = `
+    <div class="r-shop">${appSettings.shop_name || 'MiniMart'}</div>
+    <div class="r-sub">ใบเสร็จรับเงิน (อย่างย่อ)</div>
+    <div class="r-sub">#${saleId.slice(0,8)} · ${new Date(sale.sold_at).toLocaleString('th-TH')}</div>
+    <div class="r-sub">แคชเชียร์: ${sale.sold_by_name || '—'}</div>
+    <hr>
+    ${itemsHtml}
+    <hr>
+    <div class="r-row r-total-row"><span>รวม</span><span>฿${Number(sale.total).toFixed(2)}</span></div>
+    <div class="r-row"><span>รับเงิน</span><span>฿${Number(sale.pay).toFixed(2)}</span></div>
+    <div class="r-row"><span>เงินทอน</span><span>฿${Number(sale.change).toFixed(2)}</span></div>
+    ${sale.voided ? `<hr><div style="text-align:center;font-weight:700">** บิลนี้ถูกยกเลิกแล้ว **</div>` : ''}
+    <hr>
+    <div style="text-align:center">ขอบคุณที่อุดหนุนค่ะ 🙏</div>
+  `;
+  document.getElementById('receiptOverlay').classList.add('open');
+}
+function closeReceipt() { document.getElementById('receiptOverlay').classList.remove('open'); }
+
 function openBarcodeBook() {
   renderBarcodeBook();
   document.getElementById('barcodeBook').classList.add('open');
