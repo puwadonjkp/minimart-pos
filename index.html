@@ -756,6 +756,7 @@ body {
 
 /* ===== SALES PAGE (master list + slide-in detail panel) ===== */
 #page-sales { flex-direction: row; overflow: hidden; }
+#page-basket { flex-direction: column; overflow-y: auto; padding: 20px; gap: 16px; background: var(--bg); }
 .sales-list-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
 .sales-detail-pane {
   width: 0; flex-shrink: 0; overflow: hidden;
@@ -804,7 +805,7 @@ tr.sale-row-active { background: #e8f4e8; }
 .toast.show { transform: translateX(-50%) translateY(0); }
 
 /* ===== MANAGER PAGE ===== */
-#page-manager, #page-users, #page-settings, #page-manualbc, #page-permissions { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
+#page-manager, #page-users, #page-settings, #page-manualbc, #page-permissions, #page-receipts { flex-direction: column; overflow-y: auto; padding: 32px; gap: 20px; background: var(--bg); }
 
 /* ===== SETTINGS PAGE ===== */
 .settings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start; }
@@ -1304,6 +1305,10 @@ tr.sale-row-active { background: #e8f4e8; }
         <input type="checkbox" id="salesShowVoided" onchange="renderSalesTable()"> แสดงบิลที่ยกเลิกด้วย
       </label>
     </div>
+    <div class="report-card" style="margin:12px 16px 0">
+      <div class="report-card-title">ยอดขายตามช่วงเวลา (ทุกวันในช่วงที่เลือกรวมกัน) — ดูว่าช่วงไหนขายดี</div>
+      <div class="bar-chart" id="salesHourChart"></div>
+    </div>
     <div class="inv-table-wrap" style="flex:1">
       <table class="inv-table">
         <thead><tr>
@@ -1455,6 +1460,13 @@ tr.sale-row-active { background: #e8f4e8; }
         </div>
       </div>
       <div class="settings-row">
+        <div class="upload-thumb" style="font-size:18px">📍</div>
+        <div style="flex:1">
+          <label class="form-label">ที่อยู่ร้าน</label>
+          <textarea class="form-input" id="stShopAddress" rows="2" placeholder="เช่น 123 ถ.สุขุมวิท ต.บางพระ อ.ศรีราชา จ.ชลบุรี 20110" style="resize:vertical"></textarea>
+        </div>
+      </div>
+      <div class="settings-row">
         <div class="upload-thumb" id="logoPreview2">🖼️</div>
         <div style="flex:1">
           <label class="form-label">โลโก้ (แสดงมุมซ้ายบน)</label>
@@ -1491,7 +1503,16 @@ tr.sale-row-active { background: #e8f4e8; }
         <input type="checkbox" id="stAutoPrintReceipt" style="width:18px;height:18px;cursor:pointer" onchange="toggleAutoPrintReceipt(this.checked)">
         <span style="font-size:14px">🖨️ พิมพ์ใบเสร็จอัตโนมัติทุกครั้งหลังชำระเงิน</span>
       </label>
-      <div style="font-size:12px;color:var(--text2);margin-top:6px">ปิดไว้ได้ถ้าไม่อยากพิมพ์ทุกบิล — ย้อนพิมพ์บิลไหนทีหลังได้ที่หน้า "รายการขาย"</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:6px;margin-bottom:14px">ปิดไว้ได้ถ้าไม่อยากพิมพ์ทุกบิล — ย้อนพิมพ์บิลไหนทีหลังได้ที่หน้า "รายการขาย"</div>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="stReceiptShowAddress" style="width:18px;height:18px;cursor:pointer" onchange="saveReceiptSettings()">
+        <span style="font-size:14px">📍 ใส่ที่อยู่ร้านในใบเสร็จด้วย</span>
+      </label>
+      <div class="form-group">
+        <label class="form-label">ข้อความท้ายใบเสร็จ</label>
+        <input class="form-input" id="stReceiptFooter" placeholder="เช่น ขอบคุณที่อุดหนุนค่ะ 🙏">
+        <button class="btn btn-outline" style="margin-top:8px;font-size:12px;padding:6px 12px" onclick="saveReceiptSettings()">💾 บันทึกข้อความ</button>
+      </div>
     </div>
 
     <div class="report-card">
@@ -1520,6 +1541,38 @@ tr.sale-row-active { background: #e8f4e8; }
         <thead><tr><th style="width:56px"></th><th>รหัส</th><th>ชื่อสินค้า</th><th>สต็อก</th><th>รูปแบบ</th><th></th></tr></thead>
         <tbody id="mbcTableBody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== RECEIVING HISTORY (ประวัติรับของเข้า — แต่ละ Lot คือ 1 รอบรับของ อาจมีหลายสินค้า) ===== -->
+<div class="page" id="page-receipts">
+  <div style="font-size:22px; font-weight:700; color:var(--accent)">📥 ประวัติรับของเข้า (Lot)</div>
+  <div style="font-size:14px; color:var(--text2)">แต่ละแถวคือ 1 รอบรับของ ซึ่งอาจมีสินค้าหลายชนิดในรอบเดียวกัน — กดแถวเพื่อดูรายละเอียด</div>
+  <div class="report-card">
+    <div class="inv-table-wrap" style="padding:0">
+      <table class="inv-table">
+        <thead><tr><th>Lot</th><th>วันที่รับ</th><th>รับโดย</th><th>จำนวนชนิดสินค้า</th><th>มูลค่ารวม</th><th>ไฟล์แนบ</th><th>หมายเหตุ</th></tr></thead>
+        <tbody id="receiptsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt Detail Modal -->
+<div class="modal-overlay" id="receiptDetailModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">📥 รายละเอียด <span id="receiptDetailLotNo" style="color:var(--text2);font-weight:400;font-size:14px"></span></div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px" id="receiptDetailMeta"></div>
+    <div id="receiptDetailAttachment" style="margin-bottom:12px"></div>
+    <div class="inv-table-wrap" style="padding:0;max-height:300px">
+      <table class="inv-table">
+        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ต้นทุน/ชิ้น</th><th>รวม</th></tr></thead>
+        <tbody id="receiptDetailItemsBody"></tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeReceiptDetail()">ปิด</button>
     </div>
   </div>
 </div>
@@ -1585,18 +1638,20 @@ tr.sale-row-active { background: #e8f4e8; }
   </div>
 </div>
 
-<!-- Receive Stock Modal (รับของเข้า = สร้าง Lot ใหม่) -->
+<!-- Receive Stock Modal (รับของเข้า = Gen Lot ใหม่ 1 ใบ อาจมีหลายสินค้าในรอบเดียว) -->
 <div class="modal-overlay" id="receiveModal">
-  <div class="modal">
-    <div class="modal-title">📥 รับสินค้าเข้าสต็อก (Lot ใหม่)</div>
-    <div class="form-group">
-      <label class="form-label">Barcode สินค้า *</label>
-      <input class="form-input" id="rcvBarcode" placeholder="กรอกหรือสแกน Barcode" oninput="rcvLookup()">
-      <div id="rcvProductName" style="font-size:13px;color:var(--text2);margin-top:6px"></div>
+  <div class="modal" style="max-width:600px">
+    <div class="modal-title">📥 รับสินค้าเข้าสต็อก — Lot ใหม่</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Barcode สินค้า</label>
+        <input class="form-input" id="rcvBarcode" placeholder="กรอกหรือสแกน Barcode" oninput="rcvLookup()" onkeydown="if(event.key==='Enter'){event.preventDefault();addRcvLine();}">
+        <div id="rcvProductName" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">จำนวนที่รับเข้า</label>
+        <label class="form-label">จำนวน</label>
         <input class="form-input" id="rcvQty" type="number" placeholder="0">
       </div>
       <div class="form-group">
@@ -1604,8 +1659,27 @@ tr.sale-row-active { background: #e8f4e8; }
         <input class="form-input" id="rcvCost" type="number" placeholder="0.00">
       </div>
     </div>
+    <button class="btn btn-outline" style="width:100%;margin-bottom:14px" onclick="addRcvLine()">+ เพิ่มรายการนี้เข้า Lot</button>
+
+    <div class="form-label">รายการที่จะรับเข้า Lot นี้</div>
+    <div class="inv-table-wrap" style="padding:0;max-height:220px;margin-bottom:14px">
+      <table class="inv-table">
+        <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ต้นทุน/ชิ้น</th><th>รวม</th><th></th></tr></thead>
+        <tbody id="rcvLinesBody"></tbody>
+      </table>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">แนบรูป/ไฟล์ใบเสร็จที่ซื้อของมา (ถ้ามี)</label>
+      <input type="file" accept="image/*,.pdf" class="form-input" id="rcvAttachmentFile" style="padding:7px">
+    </div>
+    <div class="form-group">
+      <label class="form-label">หมายเหตุ</label>
+      <input class="form-input" id="rcvNote" placeholder="เช่น ชื่อร้าน/ซัพพลายเออร์ที่ซื้อมา">
+    </div>
+
     <div class="modal-actions">
-      <button class="btn btn-primary" style="flex:1" onclick="saveReceiveStock()">💾 บันทึกรับของ</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveReceiveStock()">💾 บันทึกรับของ (Gen Lot)</button>
       <button class="btn btn-outline" onclick="closeReceiveModal()">ยกเลิก</button>
     </div>
   </div>
@@ -1635,6 +1709,17 @@ tr.sale-row-active { background: #e8f4e8; }
   </div>
 </div>
 
+<!-- Item Quick View Modal (ดูว่าสินค้าในบิลคืออะไรกันแน่ เผื่อชื่อไทยไม่เคลียร์) -->
+<div class="modal-overlay" id="itemQuickViewModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">🔍 รายละเอียดสินค้า</div>
+    <div id="itemQuickViewBody"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" style="flex:1" onclick="closeItemQuickView()">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- Stock Lot Detail Modal -->
 <div class="modal-overlay" id="stockModal">
   <div class="modal" style="max-width:640px">
@@ -1660,6 +1745,14 @@ tr.sale-row-active { background: #e8f4e8; }
 const SUPABASE_URL = 'https://ezuxbrrbxnxujlvmqlsd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6dXhicnJieG54dWpsdm1xbHNkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4MzcyMTgsImV4cCI6MjEwNjQxMzIxOH0.Tbto_g-UxGxL8cLW3l1-Kv3QEwBuYTaMiUJ_PiVA_qg';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ========== DATE FORMATTING (dd-mm-yyyy คงที่ทุกจุดในระบบ กันสลับวัน/เดือนจน งง) ==========
+// ไม่ใช่ toLocaleDateString('th-TH') เพราะรูปแบบวัน/เดือนของมันไม่คงที่ข้ามเบราว์เซอร์/อุปกรณ์
+// (บางเครื่อง d/m/yyyy บางเครื่อง m/d/yyyy) ปีเป็น พ.ศ. (เลข ค.ศ. + 543) ตามปฏิทินที่ร้านคุ้นเคย
+function pad2(n) { return String(n).padStart(2, '0'); }
+function formatDate(d) { d = new Date(d); return `${pad2(d.getDate())}-${pad2(d.getMonth()+1)}-${d.getFullYear()+543}`; }
+function formatTime(d) { d = new Date(d); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; }
+function formatDateTime(d) { return `${formatDate(d)} ${formatTime(d)}`; }
 
 // ========== AUTH / SESSION STATE ==========
 let session = null;
@@ -1778,7 +1871,7 @@ async function renderManager() {
         <div class="alert-emoji">${p ? p.emoji : '❓'}</div>
         <div class="alert-info">
           <div class="alert-name">${p ? p.name : d.sku}</div>
-          <div class="alert-sub">ขายเกินสต็อกที่มี ${d.qty_short} ชิ้น · ${new Date(d.noted_at).toLocaleString('th-TH')}</div>
+          <div class="alert-sub">ขายเกินสต็อกที่มี ${d.qty_short} ชิ้น · ${formatDateTime(d.noted_at)}</div>
         </div>
         ${canResolve ? `<button class="btn btn-outline" onclick="dismissDiscrepancy('${d.id}')">✅ ปรับแล้ว / รับทราบ</button>` : ''}
       </div>`;
@@ -1804,7 +1897,7 @@ async function renderManager() {
     // กันไม่ให้ประวัติเก่าโชว์ชื่อใหม่ย้อนหลังถ้าคนคนนั้นเปลี่ยนชื่อแสดงทีหลัง
     logBody.innerHTML = (rows && rows.length) ? rows.map(c => `
       <tr>
-        <td style="color:var(--text2);font-size:12px">${new Date(c.changed_at).toLocaleString('th-TH')}</td>
+        <td style="color:var(--text2);font-size:12px">${formatDateTime(c.changed_at)}</td>
         <td><strong>${c.name}</strong></td>
         <td>฿${c.prev_price}</td>
         <td style="color:var(--accent);font-weight:700">฿${c.new_price}</td>
@@ -1815,12 +1908,12 @@ async function renderManager() {
 
 // ========== CLOCK ==========
 function updateClock() {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString('th-TH');
+  document.getElementById('clock').textContent = formatTime(new Date());
 }
 setInterval(updateClock, 1000); updateClock();
 
 // ========== NAVIGATION ==========
-const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', sales: 'report_view', basket: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage' };
+const PAGE_PERMS = { pos: 'pos_sell', inventory: 'inventory_view', master: 'master_view', report: 'report_view', sales: 'report_view', basket: 'report_view', manager: 'manager_view', users: 'users_manage', settings: 'settings_manage', manualbc: 'master_manual_gen', permissions: 'permissions_manage', receipts: 'inventory_receive' };
 // navbar เริ่มรก เลยจัดกลุ่ม: คลังสินค้า/Master Data/Manual Barcode รวมเป็น "จัดการสินค้า"
 // และผู้ใช้งาน/ตั้งค่าระบบ/สิทธิ์การเข้าถึง/Architecture รวมเป็น "ตั้งค่า" — เหลือ 5 ปุ่มบนแถบหลัก
 const NAV_ITEMS = [
@@ -1829,6 +1922,7 @@ const NAV_ITEMS = [
       { key: 'inventory', icon: '📦', label: 'คลังสินค้า', mobileLabel: 'คลัง', perm: 'inventory_view' },
       { key: 'master', icon: '🗂️', label: 'Master Data', mobileLabel: 'สินค้า', perm: 'master_view' },
       { key: 'manualbc', icon: '🏷️', label: 'Manual Barcode', mobileLabel: 'บาร์โค้ด', perm: 'master_manual_gen' },
+      { key: 'receipts', icon: '📥', label: 'ประวัติรับของ (Lot)', mobileLabel: 'รับของ', perm: 'inventory_receive' },
     ] },
   { key: 'reportMenu', icon: '📊', label: 'รายงาน', mobileLabel: 'รายงาน', group: true, children: [
       { key: 'report', icon: '📊', label: 'ภาพรวม', mobileLabel: 'ภาพรวม', perm: 'report_view' },
@@ -1923,6 +2017,7 @@ function showPage(name, el) {
   if (name === 'permissions') renderPermissionsPage();
   if (name === 'settings') renderSettingsPage();
   if (name === 'manualbc') renderManualBarcodePage();
+  if (name === 'receipts') renderReceiptsPage();
 }
 
 // Hide nav tabs the current user has no permission for, and jump off the
@@ -1999,7 +2094,7 @@ async function saveMyProfile() {
 document.getElementById('myProfileModal').addEventListener('click', function(e) { if(e.target===this) closeMyProfile(); });
 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
-let appSettings = { shop_name: 'MiniMart', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3', auto_print_receipt: false };
+let appSettings = { shop_name: 'MiniMart', shop_address: '', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3', auto_print_receipt: false, receipt_show_address: true, receipt_footer_text: 'ขอบคุณที่อุดหนุนค่ะ 🙏' };
 const CARD_RATIOS = ['1/1', '4/5', '2/3', '1/2'];
 function NAV_ITEMS_DEFAULT_ORDER() { return ['pos','products','reportMenu','manager','settingsMenu']; }
 
@@ -2050,11 +2145,21 @@ async function uploadBrandImage(inputEl, kind) {
 
 async function saveShopSettings() {
   const shop_name = document.getElementById('stShopName').value.trim() || 'MiniMart';
+  const shop_address = document.getElementById('stShopAddress').value.trim();
   const topbar_color = document.getElementById('stTopbarColor').value;
-  const { error } = await sb.from('app_settings').update({ shop_name, topbar_color, updated_by: session.user.id }).eq('id', true);
+  const { error } = await sb.from('app_settings').update({ shop_name, shop_address, topbar_color, updated_by: session.user.id }).eq('id', true);
   if (error) { document.getElementById('stErr').textContent = error.message; return; }
   document.getElementById('stErr').textContent = '';
   showToast('✅ บันทึกแบรนด์ร้านแล้ว');
+  await loadSettings();
+}
+
+async function saveReceiptSettings() {
+  const receipt_show_address = document.getElementById('stReceiptShowAddress').checked;
+  const receipt_footer_text = document.getElementById('stReceiptFooter').value.trim() || 'ขอบคุณที่อุดหนุนค่ะ 🙏';
+  const { error } = await sb.from('app_settings').update({ receipt_show_address, receipt_footer_text, updated_by: session.user.id }).eq('id', true);
+  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
+  showToast('✅ บันทึกการตั้งค่าใบเสร็จแล้ว');
   await loadSettings();
 }
 
@@ -2087,6 +2192,7 @@ async function moveNavItem(key, dir) {
 
 function renderSettingsPage() {
   document.getElementById('stShopName').value = appSettings.shop_name || '';
+  document.getElementById('stShopAddress').value = appSettings.shop_address || '';
   document.getElementById('stTopbarColor').value = appSettings.topbar_color || '#2d5016';
   const logoPrev = document.getElementById('logoPreview');
   const logoPrev2 = document.getElementById('logoPreview2');
@@ -2098,6 +2204,8 @@ function renderSettingsPage() {
   ).join('');
   document.getElementById('faviconPreview').innerHTML = appSettings.favicon_url ? `<img src="${appSettings.favicon_url}">` : '🔖';
   document.getElementById('stAutoPrintReceipt').checked = !!appSettings.auto_print_receipt;
+  document.getElementById('stReceiptShowAddress').checked = appSettings.receipt_show_address !== false;
+  document.getElementById('stReceiptFooter').value = appSettings.receipt_footer_text || 'ขอบคุณที่อุดหนุนค่ะ 🙏';
 
   const items = navOrderedItems();
   document.getElementById('navOrderList').innerHTML = items.map((n,i) => `
@@ -2460,12 +2568,17 @@ function renderInventory() {
   document.getElementById('invStatOut').textContent = out;
 }
 
-// ========== RECEIVE STOCK (รับของเข้า = เพิ่ม Lot ใหม่) ==========
+// ========== RECEIVE STOCK (รับของเข้า = Gen Lot ใหม่ 1 ใบ ต่อรอบรับของ อาจมีหลายสินค้า) ==========
+let rcvLines = []; // [{sku, barcode, name, qty, cost}] — สะสมไว้ก่อนกด "บันทึกรับของ"
 function showReceiveModal() {
+  rcvLines = [];
   document.getElementById('rcvBarcode').value = '';
   document.getElementById('rcvQty').value = '';
   document.getElementById('rcvCost').value = '';
   document.getElementById('rcvProductName').textContent = '';
+  document.getElementById('rcvAttachmentFile').value = '';
+  document.getElementById('rcvNote').value = '';
+  renderRcvLines();
   document.getElementById('receiveModal').classList.add('open');
 }
 function closeReceiveModal() { document.getElementById('receiveModal').classList.remove('open'); }
@@ -2476,23 +2589,89 @@ function rcvLookup() {
     ? `✅ ${p.name} (สต็อกปัจจุบัน ${totalStock(p)} ชิ้น)`
     : (bc ? '⚠️ ไม่พบสินค้า Barcode นี้ — เพิ่มสินค้าใหม่ก่อนที่หน้า "คลังสินค้า"' : '');
 }
-async function saveReceiveStock() {
-  if (!can('inventory_receive')) { showToast('⚠️ ไม่มีสิทธิ์รับของเข้าสต็อก'); return; }
+function addRcvLine() {
   const bc = document.getElementById('rcvBarcode').value.trim();
   const p = demoProducts.find(x => x.barcode === bc);
   if (!p) { showToast('⚠️ ไม่พบสินค้า Barcode นี้'); return; }
   const qty = parseInt(document.getElementById('rcvQty').value) || 0;
   const cost = parseFloat(document.getElementById('rcvCost').value) || 0;
   if (qty <= 0) { showToast('⚠️ กรอกจำนวนให้ถูกต้อง'); return; }
-  const { error } = await sb.from('product_lots').insert({ sku: p.sku, barcode: bc, qty, qty_received: qty, cost, received_by: session.user.id });
-  if (error) { showToast('⚠️ บันทึกไม่สำเร็จ: ' + error.message); return; }
-  showToast(`✅ รับของเข้า: ${p.name} +${qty} ชิ้น`);
+  rcvLines.push({ sku: p.sku, barcode: p.barcode, name: p.name, qty, cost });
+  document.getElementById('rcvBarcode').value = '';
+  document.getElementById('rcvQty').value = '';
+  document.getElementById('rcvCost').value = '';
+  document.getElementById('rcvProductName').textContent = '';
+  renderRcvLines();
+  document.getElementById('rcvBarcode').focus();
+}
+function removeRcvLine(i) { rcvLines.splice(i, 1); renderRcvLines(); }
+function renderRcvLines() {
+  document.getElementById('rcvLinesBody').innerHTML = rcvLines.length ? rcvLines.map((l,i) => `
+    <tr>
+      <td>${l.name}</td>
+      <td>${l.qty}</td>
+      <td>฿${l.cost.toFixed(2)}</td>
+      <td>฿${(l.qty*l.cost).toFixed(2)}</td>
+      <td><span class="ci-del" onclick="removeRcvLine(${i})">✕</span></td>
+    </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text2);padding:10px">ยังไม่มีรายการ — กรอกด้านบนแล้วกด "เพิ่มรายการนี้เข้า Lot"</td></tr>`;
+}
+async function saveReceiveStock() {
+  if (!can('inventory_receive')) { showToast('⚠️ ไม่มีสิทธิ์รับของเข้าสต็อก'); return; }
+  // เผื่อพิมพ์ค้างไว้ในช่องแต่ลืมกด "เพิ่มรายการ" ก่อนบันทึก — เติมให้อัตโนมัติ
+  if (document.getElementById('rcvBarcode').value.trim()) addRcvLine();
+  if (rcvLines.length === 0) { showToast('⚠️ ยังไม่มีรายการสินค้าใน Lot นี้'); return; }
+
+  let attachment_url = null;
+  const file = document.getElementById('rcvAttachmentFile').files[0];
+  if (file) {
+    const ext = file.name.split('.').pop();
+    const path = `receipts/${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('public-assets').upload(path, file, { upsert: true });
+    if (upErr) { showToast('⚠️ อัปโหลดไฟล์แนบไม่สำเร็จ: ' + upErr.message); return; }
+    attachment_url = sb.storage.from('public-assets').getPublicUrl(path).data.publicUrl;
+  }
+
+  const note = document.getElementById('rcvNote').value.trim() || null;
+  const { data: receipt, error: recErr } = await sb.from('stock_receipts')
+    .insert({ received_by: session.user.id, attachment_url, note })
+    .select('id, lot_no').single();
+  if (recErr) { showToast('⚠️ สร้าง Lot ไม่สำเร็จ: ' + recErr.message); return; }
+
+  const rows = rcvLines.map(l => ({ sku: l.sku, barcode: l.barcode, qty: l.qty, qty_received: l.qty, cost: l.cost, receipt_id: receipt.id, received_by: session.user.id }));
+  const { error: lotErr } = await sb.from('product_lots').insert(rows);
+  if (lotErr) { showToast('⚠️ บันทึก Lot ไม่สำเร็จ: ' + lotErr.message); return; }
+
+  showToast(`✅ รับของเข้า Lot ${receipt.lot_no} แล้ว (${rcvLines.length} รายการ)`);
   closeReceiveModal();
   await loadProducts();
   renderInventory(); renderMaster(); renderProducts(demoProducts); renderManager();
 }
 
 // ========== STOCK LOT DETAIL (ดู Lot ทั้งหมดของสินค้าทีละตัว แบบ FIFO) ==========
+// ========== ITEM QUICK VIEW (คลิกชื่อสินค้าในรายการบิล ดูรายละเอียดเผื่อชื่อไทยกำกวม) ==========
+function showItemQuickView(sku, barcode, name) {
+  const p = demoProducts.find(x => x.sku === sku);
+  document.getElementById('itemQuickViewBody').innerHTML = p ? `
+    <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px">
+      <div class="upload-thumb" style="width:64px;height:64px;font-size:28px">${p.imageUrl ? `<img src="${p.imageUrl}">` : p.emoji}</div>
+      <div>
+        <div style="font-weight:700;font-size:16px">${p.name}</div>
+        <div style="font-size:12px;color:var(--text2)">${p.cat}</div>
+      </div>
+    </div>
+    <div class="settings-row"><div style="flex:1"><div class="form-label">Barcode</div><div class="barcode-mono" style="font-size:13px">${p.barcode}</div></div></div>
+    <div class="settings-row"><div style="flex:1"><div class="form-label">SKU</div><div class="barcode-mono" style="font-size:13px">${p.sku}</div></div></div>
+    <div class="settings-row"><div style="flex:1"><div class="form-label">ราคาปัจจุบัน</div><div style="font-weight:700;color:var(--accent)">฿${p.price}</div></div></div>
+    <div class="settings-row"><div style="flex:1"><div class="form-label">สต็อกปัจจุบัน</div><div>${totalStock(p)} ชิ้น</div></div></div>
+  ` : `
+    <div style="font-weight:700;font-size:16px;margin-bottom:8px">${name}</div>
+    <div style="font-size:13px;color:var(--text2)">Barcode ตอนขาย: ${barcode || '—'}</div>
+    <div style="font-size:13px;color:var(--red);margin-top:10px">⚠️ ไม่พบสินค้านี้ในระบบแล้ว (อาจถูกลบไปหลังจากขายครั้งนี้)</div>
+  `;
+  document.getElementById('itemQuickViewModal').classList.add('open');
+}
+function closeItemQuickView() { document.getElementById('itemQuickViewModal').classList.remove('open'); }
+
 function showStockModal(sku) {
   const p = demoProducts.find(x => x.sku === sku);
   if (!p) return;
@@ -2508,7 +2687,7 @@ function showStockModal(sku) {
     return `
     <div class="lot-row ${depleted ? 'depleted' : ''}">
       <div class="lot-info">
-        <div><div class="lot-label">รับเข้า</div><div class="lot-val">${new Date(l.date).toLocaleDateString('th-TH')}</div></div>
+        <div><div class="lot-label">รับเข้า</div><div class="lot-val">${formatDate(l.date)}</div></div>
         <div><div class="lot-label">รับเข้า (ชิ้น)</div><div class="lot-val">${l.qtyReceived}</div></div>
         <div><div class="lot-label">ต้นทุน/ชิ้น</div><div class="lot-val">฿${l.cost.toFixed(2)}</div></div>
         <div><div class="lot-label">ขายไปแล้ว</div><div class="lot-val">${sold}</div></div>
@@ -2691,7 +2870,7 @@ async function renderReport() {
     const keys = Object.keys(buckets).sort();
     const max = Math.max(1, ...Object.values(buckets));
     timeChartHtml = keys.length ? keys.map(d => `
-      <div class="bar-row"><div class="bar-label">${new Date(d).toLocaleDateString('th-TH',{day:'numeric',month:'short'})}</div><div class="bar-track"><div class="bar-fill" style="width:${buckets[d]/max*100}%"></div></div><div class="bar-val">฿${buckets[d].toFixed(0)}</div></div>`).join('')
+      <div class="bar-row"><div class="bar-label">${formatDate(d)}</div><div class="bar-track"><div class="bar-fill" style="width:${buckets[d]/max*100}%"></div></div><div class="bar-val">฿${buckets[d].toFixed(0)}</div></div>`).join('')
       : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
   }
 
@@ -2777,6 +2956,22 @@ async function renderSalesPage() {
   }
   salesRows = list.map(r => ({ ...r, count: counts[r.id] || 0 }));
   renderSalesTable();
+  renderSalesHourChart();
+}
+
+// ยอดขายตามช่วงเวลา — รวมทุกวันในช่วงที่เลือกเข้าด้วยกัน เป็นกลุ่มละ 2 ชั่วโมง
+// (เช่น "16-18 น.") ให้เห็น pattern ว่าช่วงไหนขายดี ไม่ใช่แยกเป็นรายวันแบบกราฟในหน้าภาพรวม
+function renderSalesHourChart() {
+  const active = salesRows.filter(r => !r.voided);
+  const buckets = Array(12).fill(0); // 12 ช่วง ช่วงละ 2 ชม.
+  active.forEach(r => { buckets[Math.floor(new Date(r.sold_at).getHours()/2)] += Number(r.total); });
+  const max = Math.max(1, ...buckets);
+  document.getElementById('salesHourChart').innerHTML = active.length ? buckets.map((amt,i) => `
+    <div class="bar-row">
+      <div class="bar-label">${String(i*2).padStart(2,'0')}-${String(i*2+2).padStart(2,'0')} น.</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${amt/max*100}%"></div></div>
+      <div class="bar-val">฿${amt.toFixed(0)}</div>
+    </div>`).join('') : `<div style="color:var(--text2);font-size:13px;padding:8px 0">ยังไม่มีการขายในช่วงนี้</div>`;
 }
 
 function sortSales(col) {
@@ -2801,7 +2996,7 @@ function renderSalesTable() {
 
   document.getElementById('salesTableBody').innerHTML = list.length ? list.map(r => `
     <tr class="${r.voided?'sale-row-voided':''} ${r.id===currentSalesDetailId?'sale-row-active':''}" style="cursor:pointer" onclick="openSalesDetail('${r.id}')">
-      <td style="font-size:12px">${new Date(r.sold_at).toLocaleString('th-TH')}</td>
+      <td style="font-size:12px">${formatDateTime(r.sold_at)}</td>
       <td>${r.sold_by_name || '—'}</td>
       <td>${r.count} รายการ</td>
       <td>฿${Number(r.total).toFixed(2)}</td>
@@ -2821,11 +3016,11 @@ async function openSalesDetail(saleId) {
   if (!sale) return;
   document.getElementById('salesDetailId').textContent = '#' + saleId.slice(0,8);
   document.getElementById('salesDetailMeta').innerHTML =
-    `${new Date(sale.sold_at).toLocaleString('th-TH')} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}` +
-    (sale.voided ? `<div style="color:var(--red);font-weight:700;margin-top:6px">❌ บิลนี้ถูกยกเลิกแล้ว${sale.void_reason ? ' — เหตุผล: ' + sale.void_reason : ''} (โดย ${sale.voided_by_name || '—'} เมื่อ ${new Date(sale.voided_at).toLocaleString('th-TH')})</div>` : '');
+    `${formatDateTime(sale.sold_at)} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}` +
+    (sale.voided ? `<div style="color:var(--red);font-weight:700;margin-top:6px">❌ บิลนี้ถูกยกเลิกแล้ว${sale.void_reason ? ' — เหตุผล: ' + sale.void_reason : ''} (โดย ${sale.voided_by_name || '—'} เมื่อ ${formatDateTime(sale.voided_at)})</div>` : '');
   document.getElementById('salesDetailItemsBody').innerHTML = (items||[]).map(it => `
     <tr>
-      <td>${it.name}</td>
+      <td><span style="cursor:pointer;text-decoration:underline dotted;color:var(--accent)" onclick="showItemQuickView('${it.sku}','${(it.barcode||'').replace(/'/g,"")}','${it.name.replace(/'/g,"")}')" title="ดูรายละเอียดสินค้า">${it.name}</span></td>
       <td>${it.qty}</td>
       <td>฿${Number(it.price).toFixed(2)}</td>
       <td style="color:var(--text2)">฿${Number(it.cost).toFixed(2)}</td>
@@ -3040,6 +3235,8 @@ function closeModal() {
 document.getElementById('addModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('receiveModal').addEventListener('click', function(e) { if(e.target===this) closeReceiveModal(); });
 document.getElementById('stockModal').addEventListener('click', function(e) { if(e.target===this) closeStockModal(); });
+document.getElementById('itemQuickViewModal').addEventListener('click', function(e) { if(e.target===this) closeItemQuickView(); });
+document.getElementById('receiptDetailModal').addEventListener('click', function(e) { if(e.target===this) closeReceiptDetail(); });
 
 // ========== GEN BARCODE (สำหรับสินค้า Local ที่ไม่มีบาร์โค้ดโรงงาน) ==========
 // รหัส Manual Barcode วิ่งต่อเนื่อง MB0001, MB0002, ... — หาเลขถัดไปจากตัวที่มีอยู่จริง
@@ -3083,6 +3280,55 @@ function renderManualBarcodePage() {
   }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีสินค้า Manual Barcode</td></tr>`;
 }
 
+// ========== RECEIVING HISTORY (ประวัติรับของ — แต่ละ Lot เชื่อมกับ product_lots จริง) ==========
+async function renderReceiptsPage() {
+  const { data: receipts } = await sb.from('stock_receipts').select('*').order('received_at', { ascending: false }).limit(100);
+  const list = receipts || [];
+  const ids = list.map(r => r.id);
+  const { data: lots } = ids.length ? await sb.from('product_lots').select('receipt_id, sku, qty_received, cost').in('receipt_id', ids) : { data: [] };
+  const byReceipt = {};
+  (lots || []).forEach(l => { (byReceipt[l.receipt_id] ||= []).push(l); });
+
+  document.getElementById('receiptsTableBody').innerHTML = list.length ? list.map(r => {
+    const items = byReceipt[r.id] || [];
+    const value = items.reduce((s,l) => s + l.qty_received * Number(l.cost), 0);
+    return `<tr style="cursor:pointer" onclick="openReceiptDetail('${r.id}')">
+      <td><strong class="barcode-mono">${r.lot_no}</strong></td>
+      <td style="font-size:12px">${formatDateTime(r.received_at)}</td>
+      <td>${r.received_by_name || '—'}</td>
+      <td>${items.length} ชนิด</td>
+      <td>฿${value.toFixed(2)}</td>
+      <td>${r.attachment_url ? '📎 มีไฟล์แนบ' : '—'}</td>
+      <td style="color:var(--text2);font-size:12px">${r.note || '—'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="7" style="text-align:center;color:var(--text2);padding:20px">ยังไม่มีประวัติการรับของ</td></tr>`;
+}
+
+async function openReceiptDetail(receiptId) {
+  const { data: receipt } = await sb.from('stock_receipts').select('*').eq('id', receiptId).single();
+  const { data: lots } = await sb.from('product_lots').select('*').eq('receipt_id', receiptId);
+  if (!receipt) return;
+  document.getElementById('receiptDetailLotNo').textContent = receipt.lot_no;
+  document.getElementById('receiptDetailMeta').innerHTML =
+    `${formatDateTime(receipt.received_at)} · รับโดย: ${receipt.received_by_name || '—'}` +
+    (receipt.note ? `<br>หมายเหตุ: ${receipt.note}` : '');
+  document.getElementById('receiptDetailAttachment').innerHTML = receipt.attachment_url
+    ? `<a href="${receipt.attachment_url}" target="_blank" rel="noopener"><img src="${receipt.attachment_url}" style="max-width:100%;max-height:200px;border-radius:8px;cursor:zoom-in" onerror="this.outerHTML='<a href=\\'${receipt.attachment_url}\\' target=\\'_blank\\'>📎 เปิดไฟล์แนบ</a>'"></a>`
+    : '';
+  const items = lots || [];
+  document.getElementById('receiptDetailItemsBody').innerHTML = items.length ? items.map(l => {
+    const p = demoProducts.find(x => x.sku === l.sku);
+    return `<tr>
+      <td>${p ? p.name : l.sku}</td>
+      <td>${l.qty_received}</td>
+      <td>฿${Number(l.cost).toFixed(2)}</td>
+      <td>฿${(l.qty_received * Number(l.cost)).toFixed(2)}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--text2);padding:16px">ไม่พบรายการ</td></tr>`;
+  document.getElementById('receiptDetailModal').classList.add('open');
+}
+function closeReceiptDetail() { document.getElementById('receiptDetailModal').classList.remove('open'); }
+
 async function migrateToSequentialBarcode(sku) {
   if (!can('master_manual_gen')) { showToast('⚠️ ไม่มีสิทธิ์'); return; }
   const newBarcode = nextManualBarcode();
@@ -3105,8 +3351,9 @@ async function printReceipt(saleId) {
   `).join('');
   document.getElementById('receiptPaper').innerHTML = `
     <div class="r-shop">${appSettings.shop_name || 'MiniMart'}</div>
+    ${(appSettings.receipt_show_address && appSettings.shop_address) ? `<div class="r-sub">${appSettings.shop_address.replace(/\n/g,'<br>')}</div>` : ''}
     <div class="r-sub">ใบเสร็จรับเงิน (อย่างย่อ)</div>
-    <div class="r-sub">#${saleId.slice(0,8)} · ${new Date(sale.sold_at).toLocaleString('th-TH')}</div>
+    <div class="r-sub">#${saleId.slice(0,8)} · ${formatDateTime(sale.sold_at)}</div>
     <div class="r-sub">แคชเชียร์: ${sale.sold_by_name || '—'}</div>
     <hr>
     ${itemsHtml}
@@ -3116,7 +3363,7 @@ async function printReceipt(saleId) {
     <div class="r-row"><span>เงินทอน</span><span>฿${Number(sale.change).toFixed(2)}</span></div>
     ${sale.voided ? `<hr><div style="text-align:center;font-weight:700">** บิลนี้ถูกยกเลิกแล้ว **</div>` : ''}
     <hr>
-    <div style="text-align:center">ขอบคุณที่อุดหนุนค่ะ 🙏</div>
+    <div style="text-align:center">${appSettings.receipt_footer_text || 'ขอบคุณที่อุดหนุนค่ะ 🙏'}</div>
   `;
   document.getElementById('receiptOverlay').classList.add('open');
 }
@@ -3382,7 +3629,7 @@ async function renderUsers() {
           ${allRoles.map(r => `<option value="${r.id}" ${r.id === u.role_id ? 'selected' : ''}>${r.name}</option>`).join('')}
         </select>
       </td>
-      <td style="color:var(--text2);font-size:12px">${new Date(u.created_at).toLocaleDateString('th-TH')}</td>
+      <td style="color:var(--text2);font-size:12px">${formatDate(u.created_at)}</td>
       <td></td>
     </tr>`).join('');
 }
