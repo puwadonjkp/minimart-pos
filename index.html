@@ -1705,7 +1705,32 @@ tr.sale-row-active { background: #e8f4e8; }
       <button class="btn btn-primary" style="flex:1" onclick="saveMyProfile()">💾 บันทึก</button>
       <button class="btn btn-outline" onclick="closeMyProfile()">ยกเลิก</button>
     </div>
+    <button class="btn btn-outline" style="width:100%;margin-top:10px" onclick="closeMyProfile();openChangePassword()">🔒 เปลี่ยนรหัสผ่าน</button>
     <div class="auth-err" id="mpErr"></div>
+  </div>
+</div>
+
+<!-- Change Password Modal (ต้องรู้รหัสผ่านเดิมก่อน — ไม่มี OTP เพราะ session ที่ login อยู่แล้วคือการยืนยันตัวตนชั้นแรก) -->
+<div class="modal-overlay" id="changePasswordModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">🔒 เปลี่ยนรหัสผ่าน</div>
+    <div class="form-group">
+      <label class="form-label">รหัสผ่านเดิม</label>
+      <input class="form-input" id="cpCurrent" type="password">
+    </div>
+    <div class="form-group">
+      <label class="form-label">รหัสผ่านใหม่</label>
+      <input class="form-input" id="cpNew" type="password" placeholder="อย่างน้อย 6 ตัว">
+    </div>
+    <div class="form-group">
+      <label class="form-label">ยืนยันรหัสผ่านใหม่</label>
+      <input class="form-input" id="cpConfirm" type="password">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1" onclick="changeMyPassword()">💾 เปลี่ยนรหัสผ่าน</button>
+      <button class="btn btn-outline" onclick="closeChangePassword()">ยกเลิก</button>
+    </div>
+    <div class="auth-err" id="cpErr"></div>
   </div>
 </div>
 
@@ -2092,6 +2117,35 @@ async function saveMyProfile() {
   showToast('✅ บันทึกโปรไฟล์แล้ว');
 }
 document.getElementById('myProfileModal').addEventListener('click', function(e) { if(e.target===this) closeMyProfile(); });
+
+// ========== CHANGE PASSWORD (ตัวเอง) ==========
+// ไม่มี OTP ส่งเมล — ยืนยันตัวตนด้วยการให้กรอก "รหัสผ่านเดิม" ซ้ำแทน (เช็คจริงด้วย signInWithPassword)
+// ป้องกันกรณีเครื่อง login ค้างไว้แล้วมีคนอื่นมาเปลี่ยนรหัสแทนเจ้าของ โดยไม่ต้องตั้งระบบส่งอีเมลเพิ่ม
+function openChangePassword() {
+  document.getElementById('cpCurrent').value = '';
+  document.getElementById('cpNew').value = '';
+  document.getElementById('cpConfirm').value = '';
+  document.getElementById('cpErr').textContent = '';
+  document.getElementById('changePasswordModal').classList.add('open');
+}
+function closeChangePassword() { document.getElementById('changePasswordModal').classList.remove('open'); }
+async function changeMyPassword() {
+  const current = document.getElementById('cpCurrent').value;
+  const next = document.getElementById('cpNew').value;
+  const confirm_ = document.getElementById('cpConfirm').value;
+  const errEl = document.getElementById('cpErr');
+  if (!current || !next) { errEl.textContent = 'กรอกให้ครบทุกช่อง'; return; }
+  if (next.length < 6) { errEl.textContent = 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัว'; return; }
+  if (next !== confirm_) { errEl.textContent = 'รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน'; return; }
+  errEl.textContent = 'กำลังตรวจสอบ...';
+  const { error: signInErr } = await sb.auth.signInWithPassword({ email: session.user.email, password: current });
+  if (signInErr) { errEl.textContent = 'รหัสผ่านเดิมไม่ถูกต้อง'; return; }
+  const { error: updErr } = await sb.auth.updateUser({ password: next });
+  if (updErr) { errEl.textContent = updErr.message; return; }
+  closeChangePassword();
+  showToast('✅ เปลี่ยนรหัสผ่านแล้ว');
+}
+document.getElementById('changePasswordModal').addEventListener('click', function(e) { if(e.target===this) closeChangePassword(); });
 
 // ========== APP SETTINGS (แบรนด์ร้าน + ลำดับเมนู — ใช้ร่วมกันทุกเครื่อง) ==========
 let appSettings = { shop_name: 'MiniMart', shop_address: '', logo_url: null, favicon_url: null, topbar_color: '#2d5016', nav_order: NAV_ITEMS_DEFAULT_ORDER(), product_card_ratio: '2/3', auto_print_receipt: false, receipt_show_address: true, receipt_footer_text: 'ขอบคุณที่อุดหนุนค่ะ 🙏' };
@@ -3630,8 +3684,22 @@ async function renderUsers() {
         </select>
       </td>
       <td style="color:var(--text2);font-size:12px">${formatDate(u.created_at)}</td>
-      <td></td>
+      <td><button class="btn btn-outline" style="font-size:11px;padding:4px 10px" onclick="promptResetPassword('${u.id}','${u.display_name.replace(/'/g,"")}')">🔑 รีเซ็ตรหัสผ่าน</button></td>
     </tr>`).join('');
+}
+
+async function promptResetPassword(userId, displayName) {
+  const newPassword = prompt(`ตั้งรหัสผ่านใหม่ให้ "${displayName}" (อย่างน้อย 6 ตัว) — ให้ไปแจ้งพนักงานคนนั้นเพื่อเข้าระบบแล้วไปเปลี่ยนรหัสผ่านเองที่โปรไฟล์:`, '');
+  if (newPassword === null) return;
+  if (newPassword.length < 6) { showToast('⚠️ รหัสผ่านต้องมีอย่างน้อย 6 ตัว'); return; }
+  const resp = await fetch(`${SUPABASE_URL}/functions/v1/admin-reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+    body: JSON.stringify({ user_id: userId, new_password: newPassword }),
+  });
+  const result = await resp.json();
+  if (!resp.ok) { showToast('⚠️ รีเซ็ตไม่สำเร็จ: ' + (result.error || 'ไม่ทราบสาเหตุ')); return; }
+  showToast(`✅ ตั้งรหัสผ่านใหม่ให้ ${displayName} แล้ว`);
 }
 
 // ========== ROLE PERMISSION MATRIX (Admins เท่านั้น) ==========
