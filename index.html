@@ -516,6 +516,21 @@ body {
 .cash-btn .cash-icon { font-size: 14px; line-height: 1; flex-shrink: 0; }
 .cash-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .cash-btn:active { transform: scale(0.94); }
+.quick-pay-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.quick-pay-btn {
+  flex: 1; border: 1.5px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 10px; padding: 10px 6px; font-size: 13px; font-weight: 700;
+  font-family: 'Sarabun', sans-serif; cursor: pointer; transition: all 0.1s;
+}
+.quick-pay-btn:hover { filter: brightness(1.04); transform: translateY(-1px); }
+.quick-pay-btn:active { transform: scale(0.96); }
+.quick-pay-btn.transfer-active { border-color: var(--blue); background: #e8f0fe; color: var(--blue); }
+.pay-method-badge {
+  display: none; align-items: center; gap: 6px; background: var(--blue); color: #fff;
+  border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; font-size: 13px; font-weight: 700;
+}
+.pay-method-badge.show { display: flex; }
+.pay-method-badge .cancel-x { margin-left: auto; cursor: pointer; opacity: .85; font-weight: 600; }
 .pay-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; }
 .pay-label { font-size: 14px; font-weight: 600; color: var(--text2); white-space: nowrap; flex-shrink: 0; }
 .pay-input {
@@ -1436,9 +1451,17 @@ tr.sale-row-active { background: #e8f4e8; }
     <div class="sum-row"><span>จำนวนสินค้า</span><span id="sumQty">0 ชิ้น</span></div>
     <div class="sum-total"><span>ยอดรวม</span><span id="sumTotal">฿0.00</span></div>
     <div class="cash-grid" id="cashGrid"></div>
+    <div class="quick-pay-row">
+      <button class="quick-pay-btn" onclick="payExact()">🎯 จ่ายพอดี</button>
+      <button class="quick-pay-btn" id="transferPayBtn" onclick="setTransferPay()">📱 โอนจ่าย</button>
+    </div>
+    <div class="pay-method-badge" id="payMethodBadge">
+      <span>📱 จ่ายโดยการโอนเงิน</span>
+      <span class="cancel-x" onclick="cancelTransferPay()">✕ ยกเลิก</span>
+    </div>
     <div class="pay-row">
       <span class="pay-label">รับเงิน</span>
-      <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="calcChange()" title="พิมพ์เองกรณีฉุกเฉิน — ปกติใช้ปุ่มธนบัตรด้านบน">
+      <input class="pay-input" id="payAmount" placeholder="0.00" type="number" oninput="payMethod='cash'; updatePayMethodBadge(); calcChange();" title="พิมพ์เองกรณีฉุกเฉิน — ปกติใช้ปุ่มธนบัตรด้านบน">
       <button class="btn btn-outline" style="flex-shrink:0" onclick="clearCash()">ล้าง</button>
     </div>
     <div class="change-row"><span>เงินทอน</span><span id="changeAmt">฿0.00</span></div>
@@ -2793,13 +2816,42 @@ function renderCashGrid() {
   ).join('');
 }
 function addCash(amount) {
+  payMethod = 'cash'; updatePayMethodBadge();
   const inp = document.getElementById('payAmount');
   inp.value = (parseFloat(inp.value) || 0) + amount;
   calcChange();
 }
 function clearCash() {
+  payMethod = 'cash'; updatePayMethodBadge();
   document.getElementById('payAmount').value = '';
   calcChange();
+}
+
+// ========== วิธีจ่าย: จ่ายพอดี / โอนจ่าย ==========
+// ไวต่อการขาย — ลูกค้าจ่ายพอดีเป๊ะ หรือโอนเงินมา ไม่ต้องกดปุ่มธนบัตรไล่บวกเอง
+let payMethod = 'cash';
+function payExact() {
+  payMethod = 'cash'; updatePayMethodBadge();
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  document.getElementById('payAmount').value = total.toFixed(2);
+  calcChange();
+}
+function setTransferPay() {
+  payMethod = 'transfer';
+  const total = cart.reduce((s,c)=>s+c.price*c.qty,0);
+  document.getElementById('payAmount').value = total.toFixed(2);
+  calcChange();
+  updatePayMethodBadge();
+}
+function cancelTransferPay() {
+  payMethod = 'cash';
+  document.getElementById('payAmount').value = '';
+  calcChange();
+  updatePayMethodBadge();
+}
+function updatePayMethodBadge() {
+  document.getElementById('payMethodBadge').classList.toggle('show', payMethod === 'transfer');
+  document.getElementById('transferPayBtn').classList.toggle('transfer-active', payMethod === 'transfer');
 }
 
 function clearCart() { cart = []; renderCart(); clearCash(); }
@@ -2814,10 +2866,10 @@ async function processSale() {
   // ตัดสต็อกแบบ FIFO + บันทึกการขายทั้งหมด ทำเป็นธุรกรรมเดียวบนเซิร์ฟเวอร์ (RPC `sell`)
   // กันสองเครื่องขายสินค้าตัวเดียวกันพร้อมกันแล้วตัดสต็อกชนกัน
   const items = cart.map(c => ({ sku: c.sku, barcode: c.barcode, name: c.name, qty: c.qty, price: c.price }));
-  const { data, error } = await sb.rpc('sell', { p_items: items, p_pay: pay });
+  const { data, error } = await sb.rpc('sell', { p_items: items, p_pay: pay, p_pay_method: payMethod });
   if (error) { showToast('⚠️ ชำระเงินไม่สำเร็จ: ' + error.message); return; }
 
-  showToast(`✅ ชำระเสร็จ เงินทอน ฿${(pay-total).toFixed(2)}`);
+  showToast(payMethod === 'transfer' ? '✅ ชำระเสร็จ (โอนเงิน)' : `✅ ชำระเสร็จ เงินทอน ฿${(pay-total).toFixed(2)}`);
   clearCart();
   await loadProducts();
   renderProducts(demoProducts);
@@ -3287,7 +3339,7 @@ async function renderSalesPage() {
   renderRangeBar('salesRangeBar', renderSalesPage);
   const { from, to } = getRangeDates();
   const { data: rows } = await sb.from('sales')
-    .select('id, total, profit, sold_at, sold_by_name, voided, void_reason')
+    .select('id, total, profit, sold_at, sold_by_name, voided, void_reason, pay_method')
     .gte('sold_at', from.toISOString()).lte('sold_at', to.toISOString());
   const list = rows || [];
   const ids = list.map(r => r.id);
@@ -3340,7 +3392,7 @@ function renderSalesTable() {
     <tr class="${r.voided?'sale-row-voided':''} ${r.id===currentSalesDetailId?'sale-row-active':''}" style="cursor:pointer" onclick="openSalesDetail('${r.id}')">
       <td style="font-size:12px">${formatDateTime(r.sold_at)}</td>
       <td>${r.sold_by_name || '—'}</td>
-      <td>${r.count} รายการ</td>
+      <td>${r.count} รายการ${r.pay_method === 'transfer' ? ' <span class="status-badge-ok" style="background:#e8f0fe;color:var(--blue)">📱 โอน</span>' : ''}</td>
       <td>฿${Number(r.total).toFixed(2)}</td>
       <td style="color:var(--accent);font-weight:700">฿${Number(r.profit).toFixed(2)}</td>
       <td>${r.voided ? '<span class="status-badge-voided">ยกเลิกแล้ว</span>' : '<span class="status-badge-ok">ปกติ</span>'}</td>
@@ -3358,7 +3410,7 @@ async function openSalesDetail(saleId) {
   if (!sale) return;
   document.getElementById('salesDetailId').textContent = '#' + saleId.slice(0,8);
   document.getElementById('salesDetailMeta').innerHTML =
-    `${formatDateTime(sale.sold_at)} · แคชเชียร์: ${sale.sold_by_name || '—'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}` +
+    `${formatDateTime(sale.sold_at)} · แคชเชียร์: ${sale.sold_by_name || '—'} · ${sale.pay_method === 'transfer' ? '📱 โอนเงิน' : '💵 เงินสด'} · รับเงิน ฿${Number(sale.pay).toFixed(2)} ทอน ฿${Number(sale.change).toFixed(2)}` +
     (sale.voided ? `<div style="color:var(--red);font-weight:700;margin-top:6px">❌ บิลนี้ถูกยกเลิกแล้ว${sale.void_reason ? ' — เหตุผล: ' + sale.void_reason : ''} (โดย ${sale.voided_by_name || '—'} เมื่อ ${formatDateTime(sale.voided_at)})</div>` : '');
   document.getElementById('salesDetailItemsBody').innerHTML = (items||[]).map(it => `
     <tr>
@@ -3862,6 +3914,7 @@ async function printReceipt(saleId) {
     ${itemsHtml}
     <hr>
     <div class="r-row r-total-row"><span>รวม</span><span>฿${Number(sale.total).toFixed(2)}</span></div>
+    <div class="r-row"><span>ช่องทาง</span><span>${sale.pay_method === 'transfer' ? '📱 โอนเงิน' : '💵 เงินสด'}</span></div>
     <div class="r-row"><span>รับเงิน</span><span>฿${Number(sale.pay).toFixed(2)}</span></div>
     <div class="r-row"><span>เงินทอน</span><span>฿${Number(sale.change).toFixed(2)}</span></div>
     ${sale.voided ? `<hr><div style="text-align:center;font-weight:700">** บิลนี้ถูกยกเลิกแล้ว **</div>` : ''}
