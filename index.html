@@ -1581,17 +1581,24 @@ tr.sale-row-active { background: #e8f4e8; }
 <div class="page" id="page-bulkimport">
   <div style="font-size:22px; font-weight:700; color:var(--accent)">📋 นำเข้าสินค้าแบบ Bulk</div>
   <div style="font-size:14px; color:var(--text2)">
-    คัดลอกข้อมูลจาก Excel เรียงคอลัมน์ตามนี้ แล้ววางในช่องด้านล่าง (มีหัวตารางหรือไม่มีก็ได้ ระบบจะตรวจจับเอง):<br>
-    <strong>Barcode | ชื่อสินค้า | หมวดหมู่ | ราคาขาย | ต้นทุน | จำนวนเริ่มต้น</strong><br>
-    ถ้าสินค้าไหนยังไม่มี Barcode โรงงาน เว้นช่อง Barcode ว่างไว้ได้เลย ระบบจะสร้างรหัส Manual Barcode (MBxxxx) ให้อัตโนมัติ
+    1) กดดาวน์โหลดไฟล์ Excel เปล่าไปกรอกข้อมูลก่อน (มีหัวตารางและตัวอย่างให้ 1 แถว)<br>
+    2) กรอกข้อมูลในคอลัมน์: <strong>Barcode | ชื่อสินค้า | หมวดหมู่ | ราคาขาย | ต้นทุน | จำนวนเริ่มต้น</strong><br>
+    3) ถ้าสินค้าไหนยังไม่มี Barcode โรงงาน เว้นช่อง Barcode ว่างไว้ได้เลย ระบบจะสร้างรหัส Manual Barcode (MBxxxx) ให้อัตโนมัติ<br>
+    4) เซฟไฟล์แล้วอัปโหลดกลับเข้ามาที่นี่
   </div>
 
   <div class="report-card">
-    <label class="form-label">วางข้อมูลที่นี่</label>
-    <textarea class="form-input" id="bulkPasteArea" rows="8" style="font-family:'IBM Plex Mono',monospace;font-size:12.5px;resize:vertical" placeholder="8851234567890&#9;น้ำดื่มตราคริสตัล&#9;เครื่องดื่ม&#9;10&#9;7&#9;24&#10;&#9;ขนมปังกรอบ&#9;ขนม&#9;15&#9;10&#9;12"></textarea>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn btn-outline" onclick="downloadBulkTemplate()">⬇️ ดาวน์โหลดไฟล์ Excel เปล่า</button>
+    </div>
+    <label class="form-label">อัปโหลดไฟล์ที่กรอกแล้ว (.xlsx)</label>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <input class="form-input" type="file" id="bulkFileInput" accept=".xlsx,.xls,.csv" style="max-width:360px" onchange="handleBulkFileSelected(event)">
+      <span id="bulkFileName" style="font-size:13px;color:var(--text2)"></span>
+    </div>
     <div style="display:flex;gap:10px;margin-top:12px">
       <button class="btn btn-primary" onclick="previewBulkImport()">🔍 แสดงตัวอย่างก่อนนำเข้า</button>
-      <button class="btn btn-outline" onclick="document.getElementById('bulkPasteArea').value='';document.getElementById('bulkPreviewWrap').style.display='none';">ล้างข้อมูล</button>
+      <button class="btn btn-outline" onclick="clearBulkFile()">ล้างไฟล์</button>
     </div>
   </div>
 
@@ -1798,6 +1805,7 @@ tr.sale-row-active { background: #e8f4e8; }
      Supabase calls inside the app fail offline, not the whole page. -->
 <script src="vendor/JsBarcode.all.min.js"></script>
 <script src="vendor/supabase.min.js"></script>
+<script src="vendor/xlsx.full.min.js"></script>
 <script>
 // ========== SUPABASE CLIENT ==========
 // Project URL + anon/public key — safe to ship in the browser; every table
@@ -3420,22 +3428,60 @@ async function openReceiptDetail(receiptId) {
 }
 function closeReceiptDetail() { document.getElementById('receiptDetailModal').classList.remove('open'); }
 
-// ========== BULK IMPORT สินค้า (วางจาก Excel ทีเดียวหลายร้อยรายการตอนตั้งระบบ) ==========
+// ========== BULK IMPORT สินค้า (อัปโหลดไฟล์ Excel ทีเดียวหลายร้อยรายการตอนตั้งระบบ) ==========
 let bulkParsedRows = [];
+let bulkRowsRaw = []; // array-of-arrays ของเซลล์ อ่านมาจากไฟล์ที่อัปโหลด
 function renderBulkImportPage() {
+  clearBulkFile();
+}
+
+function downloadBulkTemplate() {
+  const header = ['Barcode', 'ชื่อสินค้า', 'หมวดหมู่', 'ราคาขาย', 'ต้นทุน', 'จำนวนเริ่มต้น'];
+  const example = ['', 'ขนมปังกรอบ (ตัวอย่าง - ลบแถวนี้ได้)', 'ขนม', 12, 8, 10];
+  const ws = XLSX.utils.aoa_to_sheet([header, example]);
+  ws['!cols'] = [{ wch: 16 }, { wch: 30 }, { wch: 14 }, { wch: 10 }, { wch: 10 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'สินค้า');
+  XLSX.writeFile(wb, 'MiniMart_แบบฟอร์มนำเข้าสินค้า.xlsx');
+}
+
+function clearBulkFile() {
+  document.getElementById('bulkFileInput').value = '';
+  document.getElementById('bulkFileName').textContent = '';
   document.getElementById('bulkPreviewWrap').style.display = 'none';
+  bulkRowsRaw = [];
+  bulkParsedRows = [];
+}
+
+function handleBulkFileSelected(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  document.getElementById('bulkPreviewWrap').style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      // header:1 → ได้ array-of-arrays ของเซลล์ตามตำแหน่งคอลัมน์จริง ไม่ผูกกับชื่อหัวตาราง
+      bulkRowsRaw = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
+      document.getElementById('bulkFileName').textContent = `📄 ${file.name} (${bulkRowsRaw.length} แถว)`;
+    } catch (err) {
+      bulkRowsRaw = [];
+      showToast('⚠️ เปิดไฟล์ไม่ได้: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function previewBulkImport() {
-  const raw = document.getElementById('bulkPasteArea').value;
-  // ห้าม .trim() ทั้งบรรทัดก่อน split('\t') — จะกิน tab ว่างๆ ที่อยู่ต้น/ท้ายบรรทัดไปด้วย
-  // (เคสหลักของฟีเจอร์นี้คือ "ไม่มี Barcode" ซึ่งคือ column ว่างตัวแรก ถ้า trim ทั้งบรรทัดจะเลื่อนคอลัมน์ผิดหมด)
-  const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
-  if (!lines.length) { showToast('⚠️ ยังไม่มีข้อมูล'); return; }
+  if (!bulkRowsRaw.length) { showToast('⚠️ กรุณาเลือกไฟล์ก่อน'); return; }
+  // ตัดแถวที่ว่างทั้งแถว (เซลล์ที่มีค่าจริงต้อง trim แล้วไม่ว่าง) ออกไปก่อน
+  const lines = bulkRowsRaw.filter(cols => cols.some(c => String(c ?? '').trim().length > 0));
+  if (!lines.length) { showToast('⚠️ ไฟล์นี้ไม่มีข้อมูล'); return; }
 
   // ตรวจจับหัวตาราง: ถ้าคอลัมน์ราคา (ลำดับที่ 4) ของแถวแรก parse เป็นตัวเลขไม่ได้ ถือว่าเป็นหัวตาราง แล้วข้ามแถวนั้น
   let startIdx = 0;
-  const firstCols = lines[0].split('\t');
+  const firstCols = lines[0];
   if (firstCols.length >= 4 && isNaN(parseFloat(firstCols[3]))) startIdx = 1;
 
   const existingBarcodes = new Set(demoProducts.map(p => p.barcode));
@@ -3447,10 +3493,10 @@ function previewBulkImport() {
 
   const rows = [];
   for (let i = startIdx; i < lines.length; i++) {
-    const cols = lines[i].split('\t');
-    const barcodeRaw = (cols[0] || '').trim();
-    const name = (cols[1] || '').trim();
-    const cat = (cols[2] || '').trim() || 'อื่นๆ';
+    const cols = lines[i];
+    const barcodeRaw = String(cols[0] ?? '').trim();
+    const name = String(cols[1] ?? '').trim();
+    const cat = String(cols[2] ?? '').trim() || 'อื่นๆ';
     const price = parseFloat(cols[3]) || 0;
     const cost = parseFloat(cols[4]) || 0;
     const qty = parseInt(cols[5]) || 0;
@@ -3537,9 +3583,7 @@ async function confirmBulkImport() {
   }
 
   showToast(`✅ นำเข้าสินค้า ${okRows.length} รายการสำเร็จ!`);
-  document.getElementById('bulkPasteArea').value = '';
-  document.getElementById('bulkPreviewWrap').style.display = 'none';
-  bulkParsedRows = [];
+  clearBulkFile();
   btn.disabled = false; btn.textContent = '✅ ยืนยันนำเข้าสินค้าทั้งหมด';
   await loadProducts();
   renderProducts(demoProducts); renderInventory(); renderMaster(); renderManager();
